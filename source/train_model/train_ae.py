@@ -14,6 +14,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
+
+# Add the parent directory to the system path to enable importing modules from it.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 source_dir = os.path.join(current_dir, '..')
 sys.path.append(source_dir)
@@ -21,18 +23,18 @@ from utils import plot_train_test_loss
 
 
 # Specify path to save results (model and plots)
-results_path = '/u/pa/nb/tourei/scratch/caserm/spectrum_analysis/background_noise/results/'
+results_path = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/'
 
 # Size of the input images and number of epoches for training
-size = 128
-num_epoch = 1000
+size = 512
+num_epoch = 500
 
 # Define generators for training, validation, and anomaly data.
 batch_size = 64
 datagen = ImageDataGenerator(rescale=1./255)
 
-# path to training PSD plots (seen data)
-train_path = '/u/pa/nb/tourei/scratch/caserm/spectrum_analysis/background_noise/plots/train/'
+# Path to training PSD plots (seen data)
+train_path = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/'
 num_train_data = 768
 train_generator = datagen.flow_from_directory(
     train_path,
@@ -42,7 +44,7 @@ train_generator = datagen.flow_from_directory(
     )
 
 # path to testing PSD plots (unseen data)
-test_path = '/u/pa/nb/tourei/scratch/caserm/spectrum_analysis/background_noise/plots/test/'
+test_path = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/'
 num_test_data = 192
 validation_generator = datagen.flow_from_directory(
     test_path,
@@ -52,7 +54,7 @@ validation_generator = datagen.flow_from_directory(
     )
 
 # path to known seismic events
-events_path = '/u/pa/nb/tourei/scratch/caserm/spectrum_analysis/seismic_events/plots/obvious_seismic_events/'
+events_path = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/anomaly/'
 anomaly_generator = datagen.flow_from_directory(
     events_path,
     target_size=(size, size),
@@ -93,12 +95,12 @@ history = model.fit(
         shuffle = True)
 
 # Save the model in h5 format
-model.save(results_path + 'model_1_128.h5')  
+model.save(results_path + f'model_1_{size}.h5')  
 
 # Save the history as well
 history_dict = history.history
 history_json = json.dumps(history_dict)
-with open(results_path + 'history_1_128.json', 'w') as json_file:
+with open(results_path + f'history_1_{size}.json', 'w') as json_file:
     json_file.write(history_json)
     
 # Plot the training and validation accuracy and loss at each epoch

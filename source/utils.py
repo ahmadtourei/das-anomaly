@@ -1,5 +1,5 @@
 """
-Utility functions for anomaly detection using autoencoders.
+Utility functions for anomaly detection in DAS datasets using autoencoders.
 """
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -70,20 +70,22 @@ def density(encoder_model, batch_images, kde):
 
     return np.array(density_list)
 
-def plot_spec(strain_rate, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path):
+def plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path):
       """Save the spectrum of all channels stacked (Channel-Frequency-Amplitude plot)."""
+      # Get the data
+      strain_rate = patch_strain.transpose("time", "distance").data
       # Check for valid inputs (note - these checks aren't exhaustive)
-      if(max_freq <= min_freq):
-        print("Error in inputs: minFrq "+str(min_freq)+" >= maxFrq "+str(max_freq))
+      if max_freq <= min_freq:
+        print("Error in plot_spec inputs: minFrq "+str(min_freq)+" >= maxFrq "+str(max_freq))
         return
-      if start_time <= end_time:
-        print("Error in inputs: minSec "+str(min_freq)+" >= maxSec "+str(max_freq))
+      if end_time <= start_time:
+        print("Error in plot_spec inputs: minSec "+str(start_time)+" >= maxSec "+str(max_freq))
         return
       # Figure out sample indices for time window of interest
       startTimeIdx =  int(start_time*sampling_rate)
       endTimeIdx = int(end_time*sampling_rate)
       if endTimeIdx > strain_rate.shape[0]: # another opportunity for error checking: don't request a time bigger than what's available.
-        print("Error in plotArraySpec inputs: maxSec "+str(end_time)+" exceeds last time in dataArray")
+        print("Error in plot_spec inputs: maxSec "+str(end_time)+" exceeds last time in dataArray")
         return
       # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
       spect = ft.fft(strain_rate[startTimeIdx:endTimeIdx+1, start_channel:end_channel+1],axis=0) 
@@ -91,16 +93,16 @@ def plot_spec(strain_rate, start_time, end_time, start_channel, end_channel, min
       amplitudeSpec = np.absolute(spect[:nFrqBins,:])
       # Calculate indices corresponding to the frequencies of interest
       NyquistFrq = sampling_rate/2.0 # the Nyquist frequency
-      # Make sure maxFrq doesn't exceed Nyquist  frequency
-      if(max_freq > NyquistFrq):
-        print("Error in inputs: maxFrq "+str(max_freq)+" >= Nyquist frequency "+str(NyquistFrq)+" indicated by sampleRate "+str(sampleRate))
+      # Make sure maxFrq doesn't exceed Nyquist frequency
+      if max_freq > NyquistFrq:
+        print("Error in plot_spec inputs: maxFrq "+str(max_freq)+" >= Nyquist frequency "+str(NyquistFrq)+" indicated by sampleRate "+str(sampleRate))
       # convert frequencies to an index in the array
       HzPerBin = NyquistFrq/float(nFrqBins) 
       minFrqIdx =  int(min_freq/HzPerBin) 
       maxFrqIdx =  int(max_freq/HzPerBin)
       # Plot
-      fig, ax = plt.subplots(figsize=(12,8))
-      clipValMax = 0.0003
+      _, ax = plt.subplots(figsize=(12,8))
+      clipValMax= np.percentile(amplitudeSpec[minFrqIdx:maxFrqIdx,:], 95)
       clipValMin = 0
       # Define the colors in RGB
       colors = [(1, 0, 0),  # Red
@@ -110,7 +112,7 @@ def plot_spec(strain_rate, start_time, end_time, start_channel, end_channel, min
       n_bins = 100  # Increase for smoother transitions
       cmap_name = 'rgb_custom_cmap'
       cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-      im = ax.imshow(amplitudeSpec[minFrqIdx:maxFrqIdx,:], aspect='auto', interpolation='none', cmap=cm, extent=(minCh,maxCh,maxFrq,minFrq), vmin=clipValMin, vmax=clipValMax)
+      _ = ax.imshow(amplitudeSpec[minFrqIdx:maxFrqIdx,:], aspect='auto', interpolation='none', cmap=cm, extent=(start_channel,end_channel,max_freq,min_freq), vmin=clipValMin, vmax=clipValMax)
       # Hide the axes
       ax.axis('off')
       # Hide the ticks
