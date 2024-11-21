@@ -10,5 +10,10 @@ The main steps are as follows:
 3. Using the _detect_anomalies_ scripts, detect anomalies in PSD images with the trained model and write their information.
 4. Using the _count_anomalies_ scripts, count the number of detected anomalies.
 
+This package's dependencies are:
+- [DASCore](https://dascore.org/)
+- [Tesorflow](https://www.tensorflow.org/install)
+- [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
+
 Contact: Ahmad Tourei, Colorado School of Mines
 tourei@mines.edu | ahmadtourei@gmail.com
