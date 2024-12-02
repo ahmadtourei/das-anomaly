@@ -8,8 +8,8 @@ import shutil
 
 # Define the root directory containing the subfolders
 psd_dir = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/spectrum_plots/dec22/first_week/'
-output_dir_train = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/'
-output_dir_test = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/'
+output_dir_train = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/images/'
+output_dir_test = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/images/'
 
 # Define number of train+test and the ratio
 num_selected_img = 1000
@@ -32,8 +32,7 @@ if len(all_png_files) < num_selected_img:
 
 # Randomly select num_selected_img PNG files
 selected_files = random.sample(all_png_files, num_selected_img)
-print(f"Selected {num_selected_img} PNG files. 
-      Working on copying the images...")
+print(f"Selected {num_selected_img} PNG files. Working on copying the images...")
 
 # Calculate the number of test files
 num_test = int(num_selected_img * test_to_train_ratio)
