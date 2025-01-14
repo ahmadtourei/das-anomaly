@@ -101,7 +101,7 @@ def plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, mi
       minFrqIdx =  int(min_freq/HzPerBin) 
       maxFrqIdx =  int(max_freq/HzPerBin)
       # Plot
-      _, ax = plt.subplots(figsize=(12,8))
+      _, ax = plt.subplots(figsize=(12,12))
       clipValMax= np.percentile(amplitudeSpec[minFrqIdx:maxFrqIdx,:], 95)
       clipValMin = 0
       # Define the colors in RGB
