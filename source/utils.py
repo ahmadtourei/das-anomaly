@@ -70,7 +70,7 @@ def density(encoder_model, batch_images, kde):
 
     return np.array(density_list)
 
-def plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path):
+def plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path, dpi):
       """Save the spectrum of all channels stacked (Channel-Frequency-Amplitude plot)."""
       # Get the data
       strain_rate = patch_strain.transpose("time", "distance").data
@@ -123,7 +123,7 @@ def plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, mi
       if not os.path.exists(fig_path_ranks):
           # Create the directory
           os.makedirs(fig_path_ranks)
-      plt.savefig(os.path.join(fig_path_ranks, f"{title}.png"), dpi=100)
+      plt.savefig(os.path.join(fig_path_ranks, f"{title}.png"), dpi=dpi)
       plt.close('all')
 
 def plot_train_test_loss(history, path):

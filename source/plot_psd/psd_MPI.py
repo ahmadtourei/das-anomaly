@@ -9,7 +9,6 @@ import time
 import dascore as dc
 from mpi4py import MPI
 
-
 # Add the parent directory to the system path to enable importing modules from it.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 source_dir = os.path.join(current_dir, '..')
@@ -61,13 +60,14 @@ sampling_rate = comm.bcast(sampling_rate, root=0)
 distance_step = comm.bcast(distance_step, root=0)
 
 # Set parameters for preprocessing the data
-step_multiple = 2
+step_multiple = 2 # gauge length to channel spacing ratio
 start_channel = 0
 end_channel = 800
 min_freq = 0
 max_freq = 0.9 * 0.5 * sampling_rate
 time_window = 2 # sec.
 time_overlap = 1 # sec.
+dpi = 300 # saved image quality
 
 # Loop over files (MPI)
 for i in range(rank, splits, size):
@@ -91,6 +91,6 @@ for i in range(rank, splits, size):
     title = os.path.basename(os.path.splitext(list(sub_sp.get_contents()["path"])[i])[0])
     title += f"_{str(start_time).zfill(num_digits)}-{str(end_time).zfill(num_digits)}sec"
     output_rank = str(rank).zfill(int(len(str(int(size)))))
-    plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path)
+    plot_spec(patch_strain, start_time, end_time, start_channel, end_channel, min_freq, max_freq, sampling_rate, title, output_rank, fig_path, dpi)
 
 sys.exit()
