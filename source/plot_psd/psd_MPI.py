@@ -49,15 +49,13 @@ if rank==0:
     patch = sub_sp[0]
     time_step = patch.coords.step("time")
     sampling_rate = int(1/(time_step / np.timedelta64(1, 's')))
-    distance_step = round(patch.coords.step("distance"), 4) 
 else:
-    splits = sub_sp = sampling_rate = num_sec = distance_step = None
+    splits = sub_sp = sampling_rate = num_sec = None
 
 # Broadcast the variables to other ranks
 splits = comm.bcast(splits, root=0)
 sub_sp = comm.bcast(sub_sp, root=0)
 sampling_rate = comm.bcast(sampling_rate, root=0)
-distance_step = comm.bcast(distance_step, root=0)
 
 # Set parameters for preprocessing the data
 step_multiple = 2 # gauge length to channel spacing ratio
