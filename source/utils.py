@@ -60,7 +60,7 @@ def density(encoder_model, batch_images, kde):
     out_vector_shape = encoder_output_shape[1]*encoder_output_shape[2]*encoder_output_shape[3]
 
     density_list=[]
-    for im in range(0, batch_images.shape[0]-1):
+    for im in range(0, batch_images.shape[0]):
         img  = batch_images[im]
         img = img[np.newaxis, :,:,:]
         encoded_img = encoder_model.predict([[img]]) # Create a compressed version of the image using the encoder

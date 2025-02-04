@@ -1,4 +1,4 @@
-    """
+"""
 This script uses unsupervised autoencoders to train a deep learning model for anomaly detection in images.
 
 For microseismic event detection, images can be the power spectral density (PSD) plots. 
@@ -62,6 +62,9 @@ model.add(MaxPooling2D((2, 2), padding='same'))
 model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
 model.add(MaxPooling2D((2, 2), padding='same'))
 
+# Save the encoder in TF's SavedModel format
+model.save(os.path.join(results_path, f"encoder_model_1_{size}"), save_format="tf")  
+
 # Decoder
 model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
 model.add(UpSampling2D((2, 2)))
@@ -84,8 +87,8 @@ history = model.fit(
         validation_steps=num_test_data // batch_size,
         shuffle = True)
 
-# Save the model in h5 format
-model.save(results_path + f'model_1_{size}.h5')  
+# Save the model in TF's SavedModel format
+model.save(os.path.join(results_path, f"autoencoder_model_1_{size}"), save_format="tf")  
 
 # Save the history as well
 history_dict = history.history
