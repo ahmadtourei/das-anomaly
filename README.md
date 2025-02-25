@@ -9,7 +9,7 @@ A Python package for anomaly detection in distributed acoustic sensing (DAS) dat
 - Python >= 3.10
 - `pip`
 ### Install Required Dependencies Only
-It is recommended using a virtual environment or a fresh conda environment for better dependency management.
+It would be great to use a virtual environment or a fresh conda environment for better dependency management.
 To install the package in editable mode with the required dependencies, run:
 
 ```bash
@@ -33,6 +33,7 @@ The main steps are as follows:
 
 ## Package's dependencies
 - [DASCore](https://dascore.org/)
+- [scikit-learn](https://scikit-learn.org/stable/)
 - [Tesorflow](https://www.tensorflow.org/install)
 
 Optional:

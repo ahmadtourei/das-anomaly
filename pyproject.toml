@@ -33,6 +33,7 @@ keywords = ["DAS", "anomaly detection", "geophysics", "machine learning"]
 
 dependencies = [
   "dascore",
+  "scikit-learn",
   "tensorflow",
 ]
 
@@ -47,9 +48,6 @@ test = [
     "ruff",
     "pooch",
 ]
-
-[tool.setuptools.packages.find]
-where = ["das_anomaly"]
 
 # --- URLs for project
 

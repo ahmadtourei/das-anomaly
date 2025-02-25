@@ -1,4 +1,5 @@
 dascore
+scikit-learn
 tensorflow
 
 [all]
