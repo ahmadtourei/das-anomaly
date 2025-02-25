@@ -20,10 +20,14 @@ requires-python = ">=3.10"
 
 classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-keywords = ["geophysics", "distributed-acoustic-sensing"]
+keywords = ["DAS", "anomaly detection", "geophysics", "machine learning"]
 
 # --- Dependencies
 
@@ -44,6 +48,9 @@ test = [
     "pooch",
 ]
 
+[tool.setuptools.packages.find]
+where = ["das_anomaly"]
+
 # --- URLs for project
 
 [project.urls]
@@ -55,7 +62,7 @@ test = [
 
 [tool.ruff]
 
-line-length = 120
+line-length = 88
 
 # enable certain types of linting
 lint.select = [
