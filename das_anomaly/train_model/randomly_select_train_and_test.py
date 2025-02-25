@@ -1,15 +1,15 @@
 """
 Randomly select train and test images for training the autoencoder.
 """
+
 import os
 import random
 import shutil
 
-
 # Define the root directory containing the subfolders
-psd_dir = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/spectrum_plots/dec22/first_week/'
-output_dir_train = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/images/'
-output_dir_test = '/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/images/'
+psd_dir = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/spectrum_plots/dec22/first_week/"
+output_dir_train = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/images/"
+output_dir_test = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/images/"
 
 # Define number of train+test and the ratio
 num_selected_img = 1000
@@ -51,4 +51,4 @@ for file_path in test_files:
     shutil.copy(file_path, output_dir_test)
 
 print(f"Copied {num_train} files to {output_dir_train}.")
-print(f"Copied {num_test} files to {output_dir_test}.")     
+print(f"Copied {num_test} files to {output_dir_test}.")

@@ -1,3 +1,26 @@
+Metadata-Version: 2.2
+Name: das-anomaly
+Version: 0.0.1
+Summary: A Python package for detecting anomalies in DAS data.
+Author-email: Ahmad Tourei <ahmadtourei@gmail.com>
+Project-URL: Source Code, https://github.com/ahmadtourei/das-anomaly
+Project-URL: Bug Tracker, https://github.com/ahmadtourei/das-anomaly
+Project-URL: Homepage, https://github.com/ahmadtourei/das-anomaly
+Keywords: geophysics,distributed-acoustic-sensing
+Classifier: License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: dascore
+Requires-Dist: tensorflow
+Provides-Extra: all
+Requires-Dist: mpi4py; extra == "all"
+Provides-Extra: test
+Requires-Dist: pre-commit; extra == "test"
+Requires-Dist: ruff; extra == "test"
+Requires-Dist: pooch; extra == "test"
+
 # das-anomaly
 [![DOI](https://zenodo.org/badge/823391484.svg)](https://zenodo.org/doi/10.5281/zenodo.12747212)
 [![Licence](https://www.gnu.org/graphics/lgplv3-88x31.png)](https://www.gnu.org/licenses/lgpl.html)

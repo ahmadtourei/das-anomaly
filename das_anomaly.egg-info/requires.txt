@@ -1,0 +1,10 @@
+dascore
+tensorflow
+
+[all]
+mpi4py
+
+[test]
+pre-commit
+ruff
+pooch
