@@ -5,17 +5,30 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools-git-versioning]
+enabled = true
+template = "{tag}"                      # Use the exact tag as the version
+version-pattern = "^v?(\\d+\\.\\d+\\.\\d+)$"   # Matches v0.0.2 or 0.0.2
+tag-commit-distance = true
+dirty-template = "{tag}.dev0"           # If the working directory is dirty
+branch-format = "{tag}"                 # Keeps the version as the tag on branches
+parent-dir-prefix = false               # Avoids parent directory versioning
+
 # --- Project Metadata
 
 [project]
 name = "das-anomaly"
-version = "0.0.1"
+
+dynamic = ["version"] # version is fetched by setuptools-git-versioning
+
 description = "A Python package for detecting anomalies in DAS data."
+
 readme = "README.md"
+
 authors = [
   { name = "Ahmad Tourei", email = "ahmadtourei@gmail.com" }
 ]
-# Specify the Python requirement
+
 requires-python = ">=3.10"
 
 classifiers = [
