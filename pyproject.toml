@@ -2,17 +2,15 @@
 
 [build-system]
 # setuptools and wheel as the build backend
-requires = ["setuptools", "wheel"]
+requires = [
+    "wheel",
+    "setuptools>=61.0",
+    "setuptools-git-versioning>=1.10.1"
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools-git-versioning]
 enabled = true
-template = "{tag}"                      # Use the exact tag as the version
-version-pattern = "^v?(\\d+\\.\\d+\\.\\d+)$"   # Matches v0.0.2 or 0.0.2
-tag-commit-distance = true
-dirty-template = "{tag}.dev0"           # If the working directory is dirty
-branch-format = "{tag}"                 # Keeps the version as the tag on branches
-parent-dir-prefix = false               # Avoids parent directory versioning
 
 # --- Project Metadata
 
