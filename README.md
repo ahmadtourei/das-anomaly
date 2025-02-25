@@ -10,7 +10,7 @@ A Python package for anomaly detection in distributed acoustic sensing (DAS) dat
 - `pip`
 ### Install Required Dependencies Only
 It would be great to use a virtual environment or a fresh conda environment for better dependency management.
-To install the package in editable mode with the required dependencies, run:
+To install the package in editable mode with the required dependencies, run the following when you are in the `das-anomaly` directory:
 
 ```bash
 pip install -e .
