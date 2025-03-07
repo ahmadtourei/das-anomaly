@@ -45,7 +45,7 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     img = np.array(img.resize((size, size), Image.Resampling.LANCZOS))
     img = img / 255.0
     img = img[np.newaxis, :, :, :]
-    encoded_img = encoder_model.predict([[img]])
+    encoded_img = encoder_model.predict([[img]], verbose=0)
     encoded_img = [np.reshape(img, (out_vector_shape)) for img in encoded_img]
     density = kde.score_samples(encoded_img)[0]
 
@@ -66,7 +66,7 @@ def density(encoder_model, batch_images, kde):
     for im in range(0, batch_images.shape[0]):
         img = batch_images[im]
         img = img[np.newaxis, :, :, :]
-        encoded_img = encoder_model.predict([[img]])  # Create a compressed version of the image using the encoder
+        encoded_img = encoder_model.predict([[img]], verbose=0)  # Create a compressed version of the image using the encoder
         encoded_img = [np.reshape(img, (out_vector_shape)) for img in encoded_img]  # Flatten the compressed image
         density = kde.score_samples(encoded_img)[0]  # get a density score for the new image
         density_list.append(density)

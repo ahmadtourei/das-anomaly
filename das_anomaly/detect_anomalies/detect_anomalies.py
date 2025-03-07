@@ -84,7 +84,7 @@ encoder_model.layers[-1].set_weights(loaded_model.layers[4].get_weights())
 encoder_model.add(MaxPooling2D((2, 2), padding='same'))
 
 # Calculate KDE of latent space using sklearn and determine if PSD is an anomaly
-encoded_images = encoder_model.predict(train_generator)
+encoded_images = encoder_model.predict(train_generator, verbose=0)
 encoder_output_shape = encoder_model.output_shape 
 out_vector_shape = encoder_output_shape[1]*encoder_output_shape[2]*encoder_output_shape[3]
 
