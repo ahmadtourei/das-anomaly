@@ -6,10 +6,11 @@ import os
 import random
 import shutil
 
-# Define the root directory containing the subfolders
-psd_dir = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/spectrum_plots/dec22/first_week/"
-output_dir_train = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/train/images/"
-output_dir_test = "/u/pa/nb/tourei/scratch/sits/ae_anomaly_detection/train/dec22/first_week/plots/test/images/"
+# Define PSD plots path
+psd_dir = "/path/to/saved/PSD/plots"
+# Define the target directory for training and testing (PSDs to be copied to)
+output_dir_train = "/path/for/training/dataset"
+output_dir_test = "/path/for/testing/dataset"
 
 # Define number of train+test and the ratio
 num_selected_img = 1000

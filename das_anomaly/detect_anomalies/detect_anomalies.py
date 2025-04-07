@@ -20,16 +20,15 @@ from das_anomaly import check_if_anomaly
 size = 128
 
 # Define the path to the results 
-results_path = '/globalscratch/ahmad9/caserm/spectrum_analysis/results/'
-model_path = results_path + f'model_1_{size}.h5'
+results_path = '/path/to/saving/results/'
+model_path = results_path + f'model_{size}.h5'
 loaded_model = load_model(model_path)
 
 # Define the path to power spectral density (PSD) plots 
-data_spool = 'UTC-YMD20220617-HMS155316.989'
-root_dir = f'/globalscratch/ahmad9/caserm/spectrum_analysis/spectrum_plots/{data_spool}/'
+root_dir = '/path/to/PSD/plots'
 
-# Define your desired threshold for density score
-density_threshold = 15934.15
+# Define your desired threshold for density score (from validate_and_plot_density step)
+density_threshold = None
 
 # Define generators for training, validation and, anomaly data.
 batch_size = 64
@@ -66,7 +65,7 @@ model.add(Conv2D(3, (3, 3), activation='sigmoid', padding='same'))
 model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mse'])
 
 # Read the history of the trained model 
-with open(os.path.join(results_path, 'history_1_128.json'), 'r') as json_file:
+with open(os.path.join(results_path, f'history_{size}.json'), 'r') as json_file:
     history_dict = json.load(json_file)
 
 # Extract the encoder network, with trained weights
@@ -100,11 +99,14 @@ for folder_name in os.listdir(root_dir):
         # Construct the glob pattern for PSD file paths in the current folder
         spectrum_file_pattern = os.path.join(folder_path, '*')
         spectrum_file_paths = glob.glob(spectrum_file_pattern)
-    # SSave the the results in a text file 
-    with open(results_path + data_spool + '/' + str(folder_name) + '_output_model_1_128_anomaly.txt', 'w') as file:
-        for i in range (0,len(spectrum_file_paths)):       
-            print(
-                f"Line {i}, image {spectrum_file_paths[i]}: 
-                  {check_if_anomaly(encoder_model=encoder_model, size=size, img_path=spectrum_file_paths[i], density_threshold=density_threshold, kde=kde)}", 
-                  file=file
-                  )
+    # Save the the results in a text file 
+    with open(f"{results_path}/{folder_name}_output_model_{size}_anomaly.txt", 'w') as file:
+        for i in range(len(spectrum_file_paths)):       
+            result = check_if_anomaly(
+                encoder_model=encoder_model,
+                size=size,
+                img_path=spectrum_file_paths[i],
+                density_threshold=density_threshold,
+                kde=kde
+            )
+            print(f"Line {i}, image {spectrum_file_paths[i]}: {result}", file=file)
