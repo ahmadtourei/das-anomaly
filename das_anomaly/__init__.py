@@ -1,21 +1,25 @@
 """
-das-anomaly package: A Python package for detecting anomalies in DAS data.
+das-anomaly package: A Python toolbox for detecting anomalies in DAS data.
 """
 import sys
 import os
 import warnings
 from importlib.metadata import version
 
-from .utils import calculate_percentile, check_if_anomaly, density, plot_spec, plot_train_test_loss, search_keyword_in_files
+from .utils import calculate_percentile, check_if_anomaly, decoder, density, encoder, plot_spec, plot_train_test_loss, search_keyword_in_files
+from .settings import SETTINGS
 
 
 __all__ = [
     "calculate_percentile",
     "check_if_anomaly",
+    "decoder",
     "density",
+    "encoder",
     "plot_spec",
     "plot_train_test_loss",
     "search_keyword_in_files",
+    "SETTINGS",
 ]
 
 def ignore_hdf5_warning():

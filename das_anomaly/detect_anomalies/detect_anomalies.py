@@ -14,13 +14,17 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from das_anomaly import check_if_anomaly
+from das_anomaly.settings import SETTINGS
 
 
 # Size of the input images 
-size = 128
+size = SETTINGS.SIZE
+
+# Define the path to power spectral density (PSD) plots 
+psd_dir = SETTINGS.PSD_DIR
 
 # Define the path to the results 
-results_path = '/path/to/saving/results/'
+results_path = SETTINGS.RESULTS_PATH
 model_path = results_path + f'model_{size}.h5'
 loaded_model = load_model(model_path)
 
@@ -30,42 +34,21 @@ destination_dir = os.path.join(results_path, "copied_detected_anomalies")
 # Create the destination directory if it doesn't exist
 os.makedirs(destination_dir, exist_ok=True)
 
-# Define your desired threshold for density score (from validate_and_plot_density step)
-density_threshold = None
+# Define the desired threshold for density score (from validate_and_plot_density step)
+density_threshold = SETTINGS.DENSITY_THRESHOLD
 
 # Define generators for training, validation and, anomaly data.
-batch_size = 64
+batch_size = SETTINGS.BATCH_SIZE
 datagen = ImageDataGenerator(rescale=1./255)
 
 # Create the train generator (with same parameters as for the trained model)
+train_images_path = SETTINGS.TRAIN_IMAGES_PATH 
 train_generator = datagen.flow_from_directory(
-    "",
+    train_images_path,
     target_size=(size, size),
     batch_size=batch_size,
     class_mode='input'
     )
-
-# Define the autoencoder
-# Encoder
-model = Sequential()
-model.add(Conv2D(64, (3, 3), activation='relu', padding='same', input_shape=(size, size, 3)))
-model.add(MaxPooling2D((2, 2), padding='same'))
-model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-model.add(MaxPooling2D((2, 2), padding='same'))
-model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-model.add(MaxPooling2D((2, 2), padding='same'))
-
-# Decoder
-model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-model.add(UpSampling2D((2, 2)))
-model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-model.add(UpSampling2D((2, 2)))
-model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-model.add(UpSampling2D((2, 2)))
-
-model.add(Conv2D(3, (3, 3), activation='sigmoid', padding='same'))
-
-model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mse'])
 
 # Read the history of the trained model 
 with open(os.path.join(results_path, f'history_{size}.json'), 'r') as json_file:
@@ -96,23 +79,22 @@ encoded_images_vector = [np.reshape(img, (out_vector_shape)) for img in encoded_
 kde = KernelDensity(kernel='gaussian', bandwidth=0.2).fit(encoded_images_vector)
 
 # Write whether the image is an anomaly in a text file
-for folder_name in os.listdir(root_dir):
-    folder_path = os.path.join(root_dir, folder_name)
+for folder_name in os.listdir(psd_dir):
+    folder_path = os.path.join(psd_dir, folder_name)
     if os.path.isdir(folder_path):
         # Construct the glob pattern for PSD file paths in the current folder
         spectrum_file_pattern = os.path.join(folder_path, '*')
         spectrum_file_paths = glob.glob(spectrum_file_pattern)
     # Save the the results in a text file 
     with open(f"{results_path}/{folder_name}_output_model_{size}_anomaly.txt", 'w') as file:
-        for i in range(len(spectrum_file_paths)):       
+        for j in range(len(spectrum_file_paths)):       
             anomaly_flag = check_if_anomaly(
                 encoder_model=encoder_model,
                 size=size,
-                img_path=spectrum_file_paths[i],
+                img_path=spectrum_file_paths[j],
                 density_threshold=density_threshold,
                 kde=kde
             )
-            print(f"Line {i}, image {spectrum_file_paths[i]}: {anomaly_flag}", file=file)
             print(f"Line {j}, image {spectrum_file_paths[j]}: {anomaly_flag}", file=file)
             
             # copy the detected anomaly to anomaly folder

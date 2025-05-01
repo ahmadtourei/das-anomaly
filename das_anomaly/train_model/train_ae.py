@@ -6,7 +6,6 @@ For microseismic event detection, images can be the power spectral density (PSD)
 We will consider the bottleneck layer output from our autoencoder as the latent space.
 Using the reconstruction error and kernel density estimation (KDE) based on the vectors in the latent space, anomalies can be detected.
 """
-
 import json
 import os
 
@@ -14,28 +13,30 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from das_anomaly import plot_train_test_loss
+from das_anomaly import plot_train_test_loss, encoder, decoder
+from das_anomaly.settings import SETTINGS
+
 
 # Specify path to save model results 
-results_path = "/path/to/results"
+results_path = SETTINGS.RESULTS_PATH
 
 # Size of the input images and number of epoches for training
-size = 128
-num_epoch = 500
+size = SETTINGS.SIZE
+num_epoch = SETTINGS.NUM_EPOCH
 
 # Define generators for training, validation, and anomaly data.
-batch_size = 64
+batch_size = SETTINGS.BATCH_SIZE
 datagen = ImageDataGenerator(rescale=1.0 / 255)
 
 # Path to training PSD plots (seen data)
-train_path = "/path/to/training/dataset"
+train_path = SETTINGS.TRAIN_IMAGES_PATH
 num_train_data = sum(len(files) for _, _, files in os.walk(train_path))
 train_generator = datagen.flow_from_directory(
     train_path, target_size=(size, size), batch_size=batch_size, class_mode="input"
 )
 
 # Path to testing PSD plots (unseen data)
-test_path = "/path/to/training/dataset"
+test_path = SETTINGS.TEST_IMAGES_PATH
 num_test_data = sum(len(files) for _, _, files in os.walk(test_path))
 validation_generator = datagen.flow_from_directory(
     test_path, target_size=(size, size), batch_size=batch_size, class_mode="input"
@@ -43,28 +44,14 @@ validation_generator = datagen.flow_from_directory(
 
 # Define the autoencoder.
 # Encoder
-model = Sequential()
-model.add(Conv2D(64, (3, 3), activation="relu", padding="same", input_shape=(size, size, 3)))
-model.add(MaxPooling2D((2, 2), padding="same"))
-model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
-model.add(MaxPooling2D((2, 2), padding="same"))
-model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
-model.add(MaxPooling2D((2, 2), padding="same"))
-
+model = encoder(size)
 # Save the encoder in TF's SavedModel format
-model.save(os.path.join(results_path, f"encoder_model_1_{size}"), save_format="tf")
-
+model.save(os.path.join(results_path, f"encoder_model_{size}"), save_format="tf")
 # Decoder
-model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
-model.add(UpSampling2D((2, 2)))
-model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
-model.add(UpSampling2D((2, 2)))
-model.add(Conv2D(64, (3, 3), activation="relu", padding="same"))
-model.add(UpSampling2D((2, 2)))
+model = decoder(model)
 
-model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mse'])
 
-model.compile(optimizer="adam", loss="mean_squared_error", metrics=["mse"])
 model.summary()
 
 # Fit the model

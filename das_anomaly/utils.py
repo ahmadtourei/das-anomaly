@@ -1,14 +1,15 @@
 """
 Utility functions for anomaly detection in DAS datasets using autoencoders.
 """
-
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import scipy.fftpack as ft
+
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 
 
 def calculate_percentile(data, percentile):
@@ -56,6 +57,18 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     return out
 
 
+def decoder(model):
+    """Imports decoder model."""
+    model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
+    model.add(UpSampling2D((2, 2)))
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+    model.add(UpSampling2D((2, 2)))
+    model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+    model.add(UpSampling2D((2, 2)))
+
+    return model.add(Conv2D(3, (3, 3), activation='sigmoid', padding='same'))
+
+
 def density(encoder_model, batch_images, kde):
     """Caulculate the density score."""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input
@@ -72,6 +85,18 @@ def density(encoder_model, batch_images, kde):
         density_list.append(density)
 
     return np.array(density_list)
+
+
+def encoder(size):
+    """Imports the encoder model."""
+    model = Sequential()
+    model.add(Conv2D(64, (3, 3), activation='relu', padding='same', input_shape=(size, size, 3)))
+    model.add(MaxPooling2D((2, 2), padding='same'))
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2, 2), padding='same'))
+    model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2, 2), padding='same'))
+    return model
 
 
 def plot_spec(

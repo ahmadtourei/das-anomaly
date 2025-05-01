@@ -7,20 +7,20 @@ import sys
 import dascore as dc
 from mpi4py import MPI
 from das_anomaly import plot_spec
+from das_anomaly.settings import SETTINGS
 
 
 # Path to the data and results
-data_path = "/path/to/the/das/data"
-fig_path = "/path/to/the/saving/PSD/plots"
-
+data_path = SETTINGS.DATA_PATH
+psd_dir = SETTINGS.FIG_PATH
 
 # Set parameters for preprocessing the data
-step_multiple = 2  # gauge length to channel spacing ratio
-start_channel = 0
-end_channel = 800
-time_window = 2  # sec.
-time_overlap = 1  # sec.
-dpi = 300  # saved image quality
+step_multiple = SETTINGS.STEP_MULTIPLE
+start_channel = SETTINGS.START_CHANNEL
+end_channel = SETTINGS.END_CHANNEL
+time_window = SETTINGS.TIME_WINDOW
+time_overlap = SETTINGS.TIME_OVERLAP  
+dpi = SETTINGS.DPI  
 
 # Initiate MPI
 comm = MPI.COMM_WORLD
@@ -34,8 +34,8 @@ if rank == 0:
     time_step = patch.coords.step("time")
     sampling_rate = int(1 / (time_step / np.timedelta64(1, "s")))
     distance_step = np.round(patch.coords.step("distance"), 3)
-    t_1 = "2022-12-01 00:00:00"
-    t_2 = "2022-12-08 00:00:00"
+    t_1 = SETTINGS.T_1
+    t_2 = SETTINGS.T_2
     sub_sp = sp.select(time=(t_1, t_2), distance=(start_channel*distance_step, end_channel*distance_step))
     # Chunk the spool to sub-patches with time_window size
     sub_sp_chunked = sub_sp.sort("time").chunk(time=time_window, overlap=time_overlap) 

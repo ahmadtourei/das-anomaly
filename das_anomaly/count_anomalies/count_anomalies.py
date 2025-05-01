@@ -5,18 +5,19 @@ Count number of anomalies detected from previous step (detect_anomalies).
 import os
 
 from das_anomaly import search_keyword_in_files
+from das_anomaly.settings import SETTINGS
 
 
-root = "/path/to/saved/results/from/detect_anomalies/"
-result_folder_name = "result_folder"
+results_path = SETTINGS.RESULTS_PATH
+results_folder_name = SETTINGS.RESULT_FOLDER_NAME
 
 keyword = "anomaly"
 
-directory = os.path.join(root, result_folder_name)
+directory = os.path.join(results_path, results_folder_name)
 
 total_count, lines = search_keyword_in_files(directory, keyword)
 
-with open(root + f"{keyword}_" + result_folder_name + ".txt", "w") as file:
+with open(results_path + f"{keyword}_" + results_folder_name + ".txt", "w") as file:
     for line in lines:
         file.write(f"{line}\n")
 
