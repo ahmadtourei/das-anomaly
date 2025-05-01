@@ -13,8 +13,8 @@ If you use _das-anomaly_ in your work, please cite the following:
 - Python >= 3.10
 - `pip`
 ### Install Required Dependencies Only
-Use a virtual environment or a fresh conda environment is encouraged for better dependency management.
-To install the package in editable mode with the required dependencies, run the following when you are in the `das-anomaly` directory:
+For clean dependency management, use a virtual environment or a fresh Conda environment.
+To install the package in editable mode with the required dependencies, run the following after cloning the repository and navigating to the `das-anomaly` directory:
 
 ```bash
 pip install -e .
