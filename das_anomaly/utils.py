@@ -76,10 +76,6 @@ def density(encoder_model, batch_images, kde):
 
 def plot_spec(
     patch_strain,
-    start_time,
-    end_time,
-    start_channel,
-    end_channel,
     min_freq,
     max_freq,
     sampling_rate,
@@ -91,54 +87,45 @@ def plot_spec(
     """Save the spectrum of all channels stacked (Channel-Frequency-Amplitude plot)."""
     # Get the data
     strain_rate = patch_strain.transpose("time", "distance").data
+    # Get coords info
+    dist_coord = patch_strain.coords.get_coord("distance")
+    dist_min = dist_coord.min()
+    dist_max = dist_coord.max()
     # Check for valid inputs (note - these checks aren't exhaustive)
     if max_freq <= min_freq:
         print("Error in plot_spec inputs: minFrq " + str(min_freq) + " >= maxFrq " + str(max_freq))
         return
-    if end_time <= start_time:
-        print("Error in plot_spec inputs: minSec " + str(start_time) + " >= maxSec " + str(max_freq))
-        return
-    # Figure out sample indices for time window of interest
-    startTimeIdx = int(start_time * sampling_rate)
-    endTimeIdx = int(end_time * sampling_rate)
-    if (
-        endTimeIdx > strain_rate.shape[0]
-    ):  # another opportunity for error checking: don't request a time bigger than what's available.
-        print("Error in plot_spec inputs: maxSec " + str(end_time) + " exceeds last time in dataArray")
-        return
     # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
-    spect = ft.fft(
-        strain_rate[startTimeIdx : endTimeIdx + 1, start_channel : end_channel + 1],
-        axis=0,
-    )
+    spect = ft.fft(strain_rate, axis=0) 
     nFrqBins = int(spect.shape[0] / 2)  # number of frequency bins
     amplitudeSpec = np.absolute(spect[:nFrqBins, :])
     # Calculate indices corresponding to the frequencies of interest
-    NyquistFrq = sampling_rate / 2.0  # the Nyquist frequency
+    nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
     # Make sure maxFrq doesn't exceed Nyquist frequency
-    if max_freq > NyquistFrq:
+    if max_freq > nyquist_frq:
         print(
             "Error in plot_spec inputs: maxFrq "
             + str(max_freq)
             + " >= Nyquist frequency "
-            + str(NyquistFrq)
+            + str(nyquist_frq)
             + " indicated by sampleRate "
-            + str(sampleRate)
+            + str(sampling_rate)
         )
     # convert frequencies to an index in the array
-    HzPerBin = NyquistFrq / float(nFrqBins)
+    HzPerBin = nyquist_frq / float(nFrqBins)
     minFrqIdx = int(min_freq / HzPerBin)
     maxFrqIdx = int(max_freq / HzPerBin)
     # Plot
     _, ax = plt.subplots(figsize=(12, 12))
-    clipValMax = np.percentile(amplitudeSpec[minFrqIdx:maxFrqIdx, :], 95)
+    #clipValMax = np.percentile(amplitudeSpec[minFrqIdx:maxFrqIdx, :], 95)
+    clipValMax = 7e-6 # this value should be calculated based on the above line for a typical background noise (anomaly-free PSD)
     clipValMin = 0
     # Define the colors in RGB
     colors = [
         (1, 0, 0),  # Red
         (0, 1, 0),  # Green
-        (0, 0, 1),
-    ]  # Blue
+        (0, 0, 1),  # Blue
+    ]  
     # Create the colormap
     n_bins = 100  # Increase for smoother transitions
     cmap_name = "rgb_custom_cmap"
@@ -148,7 +135,7 @@ def plot_spec(
         aspect="auto",
         interpolation="none",
         cmap=cm,
-        extent=(start_channel, end_channel, max_freq, min_freq),
+        extent=(dist_min, dist_max, max_freq, min_freq),
         vmin=clipValMin,
         vmax=clipValMax,
     )
@@ -178,7 +165,7 @@ def plot_train_test_loss(history, path):
     plt.ylabel("Loss")
     plt.legend()
     title = "Training_and_validation_accuracy_and_loss"
-    plt.savefig(os.path.join(path, title + ".png"), dpi=200)
+    plt.savefig(os.path.join(path, title + ".png"))
 
 
 def search_keyword_in_files(directory, keyword):

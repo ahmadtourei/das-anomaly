@@ -2,7 +2,11 @@
 [![DOI](https://zenodo.org/badge/823391484.svg)](https://zenodo.org/doi/10.5281/zenodo.12747212)
 [![Licence](https://www.gnu.org/graphics/lgplv3-88x31.png)](https://www.gnu.org/licenses/lgpl.html)
 
-A Python package for anomaly detection in distributed acoustic sensing (DAS) datasets using an autoencoder-based deep learning algorithm.
+_das-anomaly_ is an open-source Python package for anomaly detection in distributed acoustic sensing (DAS) datasets using an autoencoder-based deep learning algorithm. It is being developed by Ahmad Tourei under the supervision of Dr. Eileen R. Martin at Colorado School of Mines. 
+
+If you use _das-anomaly_ in your work, please cite the following:
+
+> Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.14927429
 
 ## Installation
 ### Prerequisites
@@ -25,10 +29,10 @@ pip install -e '.[all]'
 
 ## Instructions
 The main steps for using the package are as follows:
-1. Generate PSD plots: Using the _plot_psd_ scripts, create power spectral density (PSD) plots in RGB format. We average the energy over a desired time window and stack all channels together to create a PSD with channels on the X-axis and frequency on the Y-axis. We create PSD of normal images (images without any anomaly or seismic event) and known seismic events. We can use MPI to distribute plotting PSDs over CPUs. 
-2. Training: Using the _train_model_ scripts, randomly select train and test PSD images and train the model on normal PSD images. 
-3. Testing and thresholding: Using the _validate_and_plot_density_ jupyter notebook, validate the trained model and find an appropriate density score as a threshold for anomaly detection.
-4. Run the trained model on the data: Using the _detect_anomalies_ scripts, detect anomalies in PSD images with the trained model and write their information. Then using the _count_anomalies_ scripts, count the number of detected anomalies.
+1. Generate PSD plots: Using the _plot_psd_ scripts, create power spectral density (PSD) plots in RGB format. We average the energy over a desired time window and stack all channels together to create a PSD with channels on the X-axis and frequency on the Y-axis. We create PSD of anomaly-free images (usually background noise) and known seismic events. We can use Open MPI to distribute plotting PSDs over CPUs. 
+2. Train: Using the _train_model_ scripts, randomly select train and test PSD images and train the model on anomaly-free PSD images. 
+3. Test and set a threshold: Using the _validate_and_plot_density_ jupyter notebook, validate the trained model and find an appropriate density score as a threshold for anomaly detection.
+4. Run the trained model: Using the _detect_anomalies_ scripts, detect anomalies in PSD images via the trained model and write their information (single processor or use Open MPI). Then using the _count_anomalies_ scripts, count the number of detected anomalies.
 
 ## Package's Dependencies
 - [DASCore](https://dascore.org/)
