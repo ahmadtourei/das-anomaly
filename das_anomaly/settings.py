@@ -11,7 +11,7 @@ _settings = {k: v for k, v in vars(_defaults).items() if k.isupper()}
 
 # 2. try to pull in user overrides (optional)
 try:
-    user_cfg = import_module("user_config")  # module must be on PYTHONPATH
+    user_cfg = import_module("das_anomaly.config_user")  # module must be on PYTHONPATH
     _settings.update({k: v for k, v in vars(user_cfg).items() if k.isupper()})
 except ModuleNotFoundError:
     pass  # user chose to keep defaults

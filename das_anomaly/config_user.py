@@ -5,9 +5,9 @@ T_1 = "2022-12-01 00:00:00"
 T_2 = "2022-12-08 00:00:00"
 
 # Size of the input images 
-SIZE = 128
+SIZE = 512
 # Desired density threshold based on density score of background noise data and known anomolous data
-DENSITY_THRESHOLD = 5_000
+DENSITY_THRESHOLD = 20_485.340556576524
 # Batch size for the train generator
 BATCH_SIZE = 64
 
@@ -31,7 +31,7 @@ TRAIN_IMAGES_PATH = '/path/to/training/PSD/plots/'
 TEST_IMAGES_PATH = '/path/to/testing/PSD/plots/'
 
 # Number of epochs for training
-NUM_EPOCH = 500
+NUM_EPOCH = 250
 
 # Define the path to the detected anomalies results 
 RESULTS_PATH = '/path/to/saved/results/from/detect_anomalies/'

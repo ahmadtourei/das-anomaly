@@ -9,7 +9,7 @@ build/
 develop-eggs/
 dist/
 downloads/
-examples/
+examples/data/
 eggs/
 .eggs/
 lib/

@@ -14,7 +14,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 - `pip`
 ### Install Required Dependencies Only
 For clean dependency management, use a virtual environment or a fresh Conda environment.
-To install the package in editable mode with the required dependencies, run the following after cloning the repository and navigating to the `das-anomaly` directory:
+To install the package in editable mode with the required dependencies, run the following after cloning the repository and navigating to the repo directory:
 
 ```bash
 pip install -e .
@@ -25,6 +25,13 @@ To install the package in editable mode with all optional dependencies, run:
 
 ```bash
 pip install -e '.[all]'
+```
+
+### Uninstall 
+To uninstall the package, run:
+
+```bash
+pip uninstall das_anomaly
 ```
 
 ## Instructions
