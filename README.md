@@ -45,7 +45,7 @@ The main steps for using the package are as follows:
 ## Package's Dependencies
 - [DASCore](https://dascore.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
-- [Tesorflow](https://www.tensorflow.org/install)
+- [TesorFlow](https://www.tensorflow.org/install)
 
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
