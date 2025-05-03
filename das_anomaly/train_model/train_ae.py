@@ -18,7 +18,7 @@ from das_anomaly.settings import SETTINGS
 
 
 # Specify path to save model results 
-results_path = SETTINGS.RESULTS_PATH
+trained_path = SETTINGS.TRAINED_PATH
 
 # Size of the input images and number of epoches for training
 size = SETTINGS.SIZE
@@ -46,7 +46,7 @@ validation_generator = datagen.flow_from_directory(
 # Encoder
 model = encoder(size)
 # Save the encoder in TF's SavedModel format
-model.save(os.path.join(results_path, f"encoder_model_{size}"), save_format="tf")
+model.save(os.path.join(trained_path, f"encoder_model_{size}"), save_format="tf")
 # Decoder
 model = decoder(model)
 
@@ -65,13 +65,13 @@ history = model.fit(
 )
 
 # Save the model in h5 format
-model.save(results_path + f"model_{size}.h5")
+model.save(trained_path + f"model_{size}.h5")
 
 # Save the history as well
 history_dict = history.history
 history_json = json.dumps(history_dict)
-with open(results_path + f"history_{size}.json", "w") as json_file:
+with open(trained_path + f"history_{size}.json", "w") as json_file:
     json_file.write(history_json)
 
 # Plot the training and validation accuracy and loss at each epoch
-plot_train_test_loss(history, results_path)
+plot_train_test_loss(history, trained_path)

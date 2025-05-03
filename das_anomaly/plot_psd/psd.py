@@ -10,7 +10,7 @@ from das_anomaly.settings import SETTINGS
 
 # Path to the data and results
 data_path = SETTINGS.DATA_PATH
-psd_dir = SETTINGS.PSD_DIR
+psd_path = SETTINGS.PSD_PATH
 
 # Set parameters for preprocessing the data
 step_multiple = SETTINGS.STEP_MULTIPLE
@@ -62,6 +62,6 @@ for patch in sub_sp_chunked:
         sampling_rate,
         title,
         output_rank,
-        fig_path,
+        psd_path,
         dpi,
     )
