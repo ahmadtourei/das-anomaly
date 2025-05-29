@@ -50,7 +50,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-all = [
+extras = [
     "mpi4py"
 ]
 
@@ -58,6 +58,12 @@ test = [
     "pre-commit",
     "ruff",
     "pooch",
+    "pytest",
+    "pytest-mock",
+]
+
+all = [
+    "das_anomaly[extras]"
 ]
 
 # --- URLs for project
@@ -129,6 +135,12 @@ max-complexity = 10
 # config for docstring parsing
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    # Ignore hdf5 warnings from pytables
+    'ignore::Warning:tables:'
+]
 
 [tool.ruff.format]
 # Use `\n` line endings for all files
