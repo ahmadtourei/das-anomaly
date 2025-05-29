@@ -60,6 +60,7 @@ test = [
     "pooch",
     "pytest",
     "pytest-mock",
+    "pytest-cov",
 ]
 
 all = [
