@@ -28,10 +28,7 @@ jobs:
 
       - name: Run pytest with coverage
         run: |
-          pytest \
-            --cov=das_anomaly \
-            --cov-report=xml \
-            --cov-report=term
+          pytest --cov=das_anomaly --cov-report=xml --cov-report=term
 
       # ---------- publish coverage to Codecov ----------
       - name: Upload to Codecov
