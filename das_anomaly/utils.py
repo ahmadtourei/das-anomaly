@@ -109,7 +109,7 @@ def plot_spec(
     fig_path,
     dpi,
 ):
-    """Save the spectrum of all channels stacked (Channel-Frequency-Amplitude plot)."""
+    """Save the power spectral density (Channel-Frequency-Amplitude) plot in directory."""
     # Get the data
     strain_rate = patch_strain.transpose("time", "distance").data
     # Get coords info
@@ -169,7 +169,7 @@ def plot_spec(
     # Hide the ticks
     ax.set_xticks([])
     ax.set_yticks([])
-    fig_path_ranks = os.path.join(fig_path, "rank_" + output_rank)
+    fig_path_ranks = os.path.join(fig_path, "rank_" + str(output_rank))
     # Check if the directory does not exist
     if not os.path.exists(fig_path_ranks):
         # Create the directory
