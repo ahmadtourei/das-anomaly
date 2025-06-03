@@ -15,7 +15,16 @@ from typing import Optional
 
 import dascore as dc
 import numpy as np
-from mpi4py import MPI
+# optional MPI import 
+try:
+    from mpi4py import MPI  # noqa: N813  (we want the canonical upper‑case name)
+except ModuleNotFoundError:    
+    class _DummyComm:
+        """Stand‑in that mimics the tiny subset we use."""
+        def Get_rank(self): return 0
+        def Get_size(self): return 1
+        def bcast(self, obj, root=0): return obj
+    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()   # pragma: no cover
 
 from das_anomaly import plot_spec
 from das_anomaly.settings import SETTINGS
