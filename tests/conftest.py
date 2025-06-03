@@ -58,7 +58,7 @@ def patched_plot_psd(monkeypatch):
 
 
 @pytest.fixture
-def cfg(tmp_path, terra15_das_example_path, terra15_das_patch ):
+def cfg(tmp_path, terra15_das_example_path, terra15_das_patch):
     """PSDConfig pointing to temp directories (auto-cleaned by pytest)."""
     return PSDConfig(
         data_path=terra15_das_example_path,

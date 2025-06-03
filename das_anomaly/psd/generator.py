@@ -12,8 +12,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-import numpy as np
+
 import dascore as dc
+import numpy as np
+from mpi4py import MPI
 
 from das_anomaly import plot_spec
 from das_anomaly.settings import SETTINGS
@@ -61,11 +63,17 @@ class PSDGenerator:
         for patch in self._iter_patches():
             self._plot_patch(patch)
 
+    def run_parallel(self) -> None:
+        """Entry point - iterate over patches using MPI and produce PSD plots.
+        Each patch is assigned to one MPI rank (i.e., processor)."""
+        for patch in self._iter_patches_MPI():
+            self._plot_patch(patch)
+
     # --------------------------------------------------------------------- #
     # Internals
     # --------------------------------------------------------------------- #
     def _iter_patches(self):
-        """Return an iterator of detrended strain-rate patches."""
+        """Yield detrended strain-rate patches."""
         sp = dc.spool(self.cfg.data_path).update()
 
         patch0 = sp[0]
@@ -76,10 +84,62 @@ class PSDGenerator:
             distance=self._distance_slice(patch0),
         )
         # chunk into windowed sub‑patches
-        for patch in (
-            sub_sp.sort("time")
-            .chunk(time=self.cfg.time_window, overlap=self.cfg.time_overlap)
-        ):
+        sub_sp_chunked = sub_sp.sort("time").chunk(time=self.cfg.time_window, overlap=self.cfg.time_overlap)
+        if len(sub_sp_chunked) == 0:
+            raise ValueError("No patch of DAS data found within data path: %s")
+        # iterate over patches and perform preprocessing
+        for patch in (sub_sp_chunked):
+            yield (
+                patch.velocity_to_strain_rate_edgeless(
+                    step_multiple=self.cfg.step_multiple
+                ).detrend("time"),
+                sr,
+            )
+
+    def _iter_patches_parallel(self, flag: bool = True):
+        """Yield detrended strain-rate patches in an MPI-friendly round-robin.
+
+        Parameters
+        ----------
+        flag : bool, default ``True``
+            If *True*, each rank prints a message like  
+            ``Rank 2 is working on patch number: 7``  
+            as it processes its share of patches.  
+            Set to *False* to silence these progress messages.
+        """
+        # Initiate MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+
+        if rank == 0:
+
+            sp = dc.spool(self.cfg.data_path).update()
+
+            patch0 = sp[0]
+            sr = self._sampling_rate(patch0)
+
+            sub_sp = sp.select(
+                time=(self.cfg.t1, self.cfg.t2),
+                distance=self._distance_slice(patch0),
+            )
+
+            sub_sp_chunked = sub_sp.sort("time").chunk(time=self.cfg.time_window, overlap=self.cfg.time_overlap) 
+            if len(sub_sp_chunked) == 0:
+                raise ValueError("No patch of DAS data found within data path: %s")
+        else:
+            sub_sp_chunked = sr = None
+        
+        # Broadcast the variables to other ranks
+        sub_sp_chunked = comm.bcast(sub_sp_chunked, root=0)
+        sr = comm.bcast(sr, root=0)
+        distance_step = comm.bcast(distance_step, root=0)
+
+        # chunk into windowed sub‑patches
+        for i in range(rank, len(sub_sp_chunked), size):
+            if flag:
+                print(f"Rank {rank} is wroking on patch number: {i}")
+            patch = sub_sp_chunked[i]
             yield (
                 patch.velocity_to_strain_rate_edgeless(
                     step_multiple=self.cfg.step_multiple

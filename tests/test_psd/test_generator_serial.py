@@ -7,7 +7,7 @@ def test_run_calls_plot_spec(
     gen = PSDGenerator(cfg)
     gen.run()
 
-    # Should have been called twice (len(sub_sp.chunk(time=time_window, overlap=time_overlap)) == 14)
+    # Should have been called 14 times (len(sub_sp.chunk(time=time_window, overlap=time_overlap)) == 14)
     assert patched_plot_psd.call_count == 14
 
     # Inspect for expected arguments
@@ -21,4 +21,3 @@ def test_run_calls_plot_spec(
     assert kwargs["output_rank"] == 0
     assert kwargs["fig_path"] == cfg.psd_path
     assert kwargs["dpi"] == cfg.dpi
-
