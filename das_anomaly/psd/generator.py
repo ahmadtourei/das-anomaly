@@ -66,7 +66,7 @@ class PSDGenerator:
     def run_parallel(self) -> None:
         """Entry point - iterate over patches using MPI and produce PSD plots.
         Each patch is assigned to one MPI rank (i.e., processor)."""
-        for patch in self._iter_patches_MPI():
+        for patch in self._iter_patches_parallel():
             self._plot_patch(patch)
 
     # --------------------------------------------------------------------- #
@@ -97,14 +97,13 @@ class PSDGenerator:
             )
 
     def _iter_patches_parallel(self, flag: bool = True):
-        """Yield detrended strain-rate patches in an MPI-friendly round-robin.
+        """
+        Yield detrended strain-rate patches in an MPI-friendly round-robin.
 
         Parameters
         ----------
         flag : bool, default ``True``
-            If *True*, each rank prints a message like  
-            ``Rank 2 is working on patch number: 7``  
-            as it processes its share of patches.  
+            If *True*, each rank prints which patch number they are working on.  
             Set to *False* to silence these progress messages.
         """
         # Initiate MPI
@@ -133,8 +132,7 @@ class PSDGenerator:
         # Broadcast the variables to other ranks
         sub_sp_chunked = comm.bcast(sub_sp_chunked, root=0)
         sr = comm.bcast(sr, root=0)
-        distance_step = comm.bcast(distance_step, root=0)
-
+ 
         # chunk into windowed sub‑patches
         for i in range(rank, len(sub_sp_chunked), size):
             if flag:
