@@ -53,7 +53,7 @@ The main steps for using the package are as follows:
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
 
-Installation and loding of [Open MPI](https://www.open-mpi.org/) module is require prior to installation of `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+Installation and loding of [Open MPI](https://www.open-mpi.org/) module is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
 
 ## Contact
 Ahmad Tourei, Colorado School of Mines
