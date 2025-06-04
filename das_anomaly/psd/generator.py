@@ -5,7 +5,10 @@ Example
 -------
 >>> from das_anomaly.psd import PSDConfig, PSDGenerator
 >>> cfg = PSDConfig(data_path="~/data", psd_path="~/results/psd")
+>>> # serial processing with single processor:
 >>> PSDGenerator(cfg).run()
+>>> # parallel processing with multiple processors using MPI:
+>>> PSDGenerator(cfg).run_parallel()
 """
 from __future__ import annotations
 
