@@ -13,6 +13,7 @@ from das_anomaly.utils import (  # noqa: E402
     calculate_percentile,
     check_if_anomaly,
     density,
+    plot_spec,
     plot_train_test_loss,
     search_keyword_in_files,
 )
@@ -113,13 +114,10 @@ def test_density_vectorization():
 
 def test_plot_spec_nyquist_warning(tmp_path, monkeypatch, capsys):
     """When max_freq > Nyquist, function prints an error message."""
-    import matplotlib.pyplot as plt
-    from das_anomaly.utils import plot_spec
-
-    # --- stub out pyplot to avoid writing a real file ----------------
+    # stub out pyplot to avoid writing a real file 
     monkeypatch.setattr(plt, "savefig", lambda *a, **k: None)
 
-    # --- minimal fake Patch object ----------------------------------
+    # minimal fake Patch object
     class DummyCoords:
         def get_coord(self, name):
             # returns an array so .min() / .max() work
@@ -145,6 +143,39 @@ def test_plot_spec_nyquist_warning(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "Error in plot_spec inputs: max_frq" in out
 
+def test_plot_spec_min_ge_max(tmp_path, monkeypatch, capsys):
+    """If max_freq ≤ min_freq the function should print an error and return."""
+    import matplotlib.pyplot as plt
+    from das_anomaly.utils import plot_spec
+
+    # Prevent any actual file creation
+    monkeypatch.setattr(plt, "savefig", lambda *a, **k: None)
+
+    # Minimal fake Patch object (same style as previous test)
+    class DummyCoords:
+        def get_coord(self, name):
+            return np.arange(10)  # so .min() / .max() work
+
+    patch_strain = SimpleNamespace(
+        transpose=lambda *a, **k: SimpleNamespace(data=np.zeros((20, 10))),
+        coords=DummyCoords(),
+    )
+
+    # Ensure max_freq ≤ min_freq to enter the guard clause
+    plot_spec(
+        patch_strain,
+        min_freq=100,
+        max_freq=50,           # smaller than min_freq
+        sampling_rate=1000,
+        title="dummy",
+        output_rank=0,
+        fig_path=tmp_path,
+        dpi=72,
+    )
+
+    captured = capsys.readouterr().out
+    assert "Error in plot_spec inputs: minFrq 100 >= maxFrq 50" in captured
+    
 
 def test_plot_train_test_loss(tmp_path: Path, monkeypatch):
     """plot_train_test_loss saves a PNG (savefig is intercepted)."""
