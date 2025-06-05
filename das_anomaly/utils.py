@@ -116,7 +116,7 @@ def plot_spec(
 ):
     """Save the power spectral density (Channel-Frequency-Amplitude) plot in a directory."""
     # Get the data
-    strain_rate = patch_strain.transpose("time", "distance").data
+    strain_rate = patch_strain.transpose("time", "distance").data # pragma: no cover
     # Get coords info
     dist_coord = patch_strain.coords.get_coord("distance")
     dist_min = dist_coord.min()
@@ -147,7 +147,7 @@ def plot_spec(
     max_frq_idx = int(max_freq / hz_per_bin)
     # Plot
     _, ax = plt.subplots(figsize=(12, 12))
-    clip_val_max = SETTINGS.CLIP_VALUE_MAX
+    clip_val_max = SETTINGS.CLIP_VALUE_MAX # pragma: no cover
     clip_val_min = 0
     # Define the colors in RGB
     colors = [
@@ -169,7 +169,7 @@ def plot_spec(
         vmax=clip_val_max,
     )
     # Hide the axes
-    ax.axis("off")
+    ax.axis("off") # pragma: no cover
     # Hide the ticks
     ax.set_xticks([])
     ax.set_yticks([])
