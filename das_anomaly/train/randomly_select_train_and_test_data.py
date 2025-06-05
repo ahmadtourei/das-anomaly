@@ -31,7 +31,7 @@ for subdir, _, files in os.walk(psd_dir):
 
 # Check if there are at least num_selected_img files
 if len(all_png_files) < num_img:
-    raise ValueError(f"Only {len(all_png_files)} PNG files found, which is less than the required {num_selected_img}.")
+    raise ValueError(f"Only {len(all_png_files)} PNG files found, which is less than the required {num_img}.")
 
 # Randomly select num_selected_img PNG files
 selected_files = random.sample(all_png_files, num_img)

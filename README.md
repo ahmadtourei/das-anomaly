@@ -45,7 +45,8 @@ The main steps for using the package are as follows:
 4. Test and set a threshold: Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection.
 5. Run the trained model: Using the _detect_anomalies_ scripts, detect anomalies in PSD images via the trained model and write their information (single processor or use Open MPI). Then using the _count_anomalies_ scripts, count the number of detected anomalies.
 
-## Package's Dependencies
+## Package's Dependencies matplotlib
+- [matplotlib](https://matplotlib.org/)
 - [DASCore](https://dascore.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [TesorFlow](https://www.tensorflow.org/install)
