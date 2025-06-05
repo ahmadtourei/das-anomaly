@@ -43,6 +43,7 @@ keywords = ["DAS", "anomaly detection", "geophysics", "machine learning"]
 # --- Dependencies
 
 dependencies = [
+  "matplotlib",
   "dascore",
   "scikit-learn",
   "tensorflow",
