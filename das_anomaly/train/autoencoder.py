@@ -6,8 +6,11 @@ Train a convolutional autoencoder on PSD images for anomaly detection.
 
 Example
 -------
+>>> from das_anomaly.settings import SETTINGS
 >>> from das_anomaly.train import TrainAEConfig, AutoencoderTrainer
->>> cfg = TrainAEConfig(num_epoch=100, ratio=0.2)
+>>> num_epoch = SETTINGS.NUM_EPOCH
+>>> ratio = SETTINGS.RATIO
+>>> cfg = TrainAEConfig(num_epoch=num_epoch, ratio=ratio) 
 >>> AutoencoderTrainer(cfg).run()          # fits and saves model and plots
 """
 from __future__ import annotations
