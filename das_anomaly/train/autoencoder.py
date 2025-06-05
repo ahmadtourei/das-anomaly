@@ -7,8 +7,8 @@ Train a convolutional autoencoder on PSD images for anomaly detection.
 Example
 -------
 >>> from das_anomaly.train import TrainAEConfig, AutoencoderTrainer
->>> cfg = TrainAEConfig(num_epoch=100, ratio=0.25)
->>> AutoencoderTrainer(cfg).run()          # fits and saves model + plots
+>>> cfg = TrainAEConfig(num_epoch=100, ratio=0.2)
+>>> AutoencoderTrainer(cfg).run()          # fits and saves model and plots
 """
 from __future__ import annotations
 
@@ -33,20 +33,20 @@ from das_anomaly.settings import SETTINGS
 class TrainAEConfig:
     """All knobs for autoencoder training (mirrors SETTINGS defaults)."""
 
-    # directories -------------------------------------------------------
+    # directories 
     train_dir: Path | str = SETTINGS.TRAIN_IMAGES_PATH
     test_dir: Path | str = SETTINGS.TEST_IMAGES_PATH
     out_dir: Path | str = SETTINGS.TRAINED_PATH
 
-    # data & training parameters ---------------------------------------
+    # data & training parameters 
     img_size: int = SETTINGS.SIZE
     batch_size: int = SETTINGS.BATCH_SIZE
     num_epoch: int = SETTINGS.NUM_EPOCH
 
-    # augmentation / preprocessing -------------------------------------
+    # augmentation / preprocessing 
     rescale: float = 1.0 / 255
 
-    # random seed for reproducibility ----------------------------------
+    # random seed for reproducibility 
     seed: Optional[int] = 42
 
     def __post_init__(self):
@@ -162,4 +162,3 @@ class AutoencoderTrainer:
             cfg = TrainAEConfig()  # defaults
 
         AutoencoderTrainer(cfg).run()
-
