@@ -1,15 +1,26 @@
+"""
+Configuration for the DAS-anomaly demo pipeline
+------------------------------------------------------
+
+Edit just this file to point every stage—pre-processing, PSD plotting,
+autoencoder training, and inference—at the right data locations and
+hyper-parameters.
+"""
 # Path to the data 
-DATA_PATH = '/path/to/the/DAS/data'
+DATA_PATH = '/path/to/the/das/data'
 # Start and end time for the data spool
 T_1 = "2023-01-23 00:00:00"
 T_2 = "2023-02-00 00:00:00"
 
-# Size of the input images 
+# Size of the input/output images 
 SIZE = 512
-# Desired density threshold based on density score of background noise data and known anomolous data
-DENSITY_THRESHOLD = 20_485.340556576524
 # Batch size for the train generator
 BATCH_SIZE = 64
+# Desired density threshold based on density score of background noise data and known anomolous data
+DENSITY_THRESHOLD = 20_485.340556576524
+# Empirically choose 95th-percentile amplitude for a background noise (anomaly-free) PSD;
+# used as vmax in imshow to keep colour scaling consistent across plots.
+CLIP_VALUE_MAX = 7e-6
 
 # Set parameters for preprocessing the data
 STEP_MULTIPLE = 2  # gauge length to channel spacing ratio

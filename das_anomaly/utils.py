@@ -11,27 +11,32 @@ from PIL import Image
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 
+from das_anomaly.settings import SETTINGS
+
 
 def calculate_percentile(data, percentile):
-    """Calculate the given percentile of a list of data."""
-    size = len(data)
-    if size == 0:
-        return None  # Return None if data is empty
+    """
+    Return the given percentile of *data* using linear interpolation
+    (equivalent to numpy.percentile with method="linear").
+    Empty input ➜ None.
+    """
+    if not data:
+        return None
 
-    # Sort the data
-    data.sort()
+    if not (0 <= percentile <= 100):
+        raise ValueError("percentile must be in [0, 100]")
 
-    # Calculate the percentile position
-    pos = (size + 1) * percentile / 100.0 - 1
-    if pos.is_integer():
-        # If pos is an integer, return the data at pos
-        return data[int(pos)]
-    else:
-        # If pos is not an integer, interpolate between adjacent data points
-        lower_index = int(pos)
-        upper_index = min(lower_index + 1, size - 1)  # Ensure upper_index is within bounds
-        interpolation = pos - lower_index
-        return data[lower_index] * (1 - interpolation) + data[upper_index] * interpolation
+    x = sorted(data)
+    n = len(x)
+    # position between 0 and n-1
+    pos = (n - 1) * percentile / 100.0
+    lo = int(np.floor(pos))
+    hi = int(np.ceil(pos))
+    if lo == hi:
+        return x[lo]
+    # interpolate
+    weight_hi = pos - lo
+    return x[lo] * (1 - weight_hi) + x[hi] * weight_hi
 
 
 def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
@@ -109,7 +114,7 @@ def plot_spec(
     fig_path,
     dpi,
 ):
-    """Save the power spectral density (Channel-Frequency-Amplitude) plot in directory."""
+    """Save the power spectral density (Channel-Frequency-Amplitude) plot in a directory."""
     # Get the data
     strain_rate = patch_strain.transpose("time", "distance").data
     # Get coords info
@@ -122,14 +127,14 @@ def plot_spec(
         return
     # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
     spect = ft.fft(strain_rate, axis=0) 
-    nFrqBins = int(spect.shape[0] / 2)  # number of frequency bins
-    amplitudeSpec = np.absolute(spect[:nFrqBins, :])
+    n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
+    amplitude_spec = np.absolute(spect[:n_frq_bins, :])
     # Calculate indices corresponding to the frequencies of interest
     nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
     # Make sure maxFrq doesn't exceed Nyquist frequency
     if max_freq > nyquist_frq:
         print(
-            "Error in plot_spec inputs: maxFrq "
+            "Error in plot_spec inputs: max_frq "
             + str(max_freq)
             + " >= Nyquist frequency "
             + str(nyquist_frq)
@@ -137,14 +142,13 @@ def plot_spec(
             + str(sampling_rate)
         )
     # convert frequencies to an index in the array
-    HzPerBin = nyquist_frq / float(nFrqBins)
-    minFrqIdx = int(min_freq / HzPerBin)
-    maxFrqIdx = int(max_freq / HzPerBin)
+    hz_per_bin = nyquist_frq / float(n_frq_bins)
+    min_frq_idx = int(min_freq / hz_per_bin)
+    max_frq_idx = int(max_freq / hz_per_bin)
     # Plot
     _, ax = plt.subplots(figsize=(12, 12))
-    #clipValMax = np.percentile(amplitudeSpec[minFrqIdx:maxFrqIdx, :], 95)
-    clipValMax = 7e-6 # this value should be calculated based on the above line for a typical background noise (anomaly-free PSD)
-    clipValMin = 0
+    clip_val_max = SETTINGS.CLIP_VALUE_MAX
+    clip_val_min = 0
     # Define the colors in RGB
     colors = [
         (1, 0, 0),  # Red
@@ -156,13 +160,13 @@ def plot_spec(
     cmap_name = "rgb_custom_cmap"
     cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
     _ = ax.imshow(
-        amplitudeSpec[minFrqIdx:maxFrqIdx, :],
+        amplitude_spec[min_frq_idx:max_frq_idx, :],
         aspect="auto",
         interpolation="none",
         cmap=cm,
         extent=(dist_min, dist_max, max_freq, min_freq),
-        vmin=clipValMin,
-        vmax=clipValMax,
+        vmin=clip_val_min,
+        vmax=clip_val_max,
     )
     # Hide the axes
     ax.axis("off")
