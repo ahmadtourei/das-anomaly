@@ -11,6 +11,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 
 > Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.14927429
 
+
 ## Installation
 ### Prerequisites
 - Python >= 3.10
@@ -55,6 +56,9 @@ Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
 
 Installation and loding of [Open MPI](https://www.open-mpi.org/) module is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+
+## Note
+Still under development. Use with caution.
 
 ## Contact
 Ahmad Tourei, Colorado School of Mines
