@@ -1,15 +1,14 @@
-from pathlib import Path
 from unittest.mock import MagicMock
-
 import numpy as np
+from PIL import Image
 import pytest
 
 import dascore as dc
-from dascore.clients.dirspool import DirectorySpool
 from dascore.compat import random_state
 from dascore.core import Patch
 from dascore.io.core import read
 from dascore.utils.downloader import fetch
+
 from das_anomaly.psd import PSDConfig      
 
 
@@ -70,3 +69,98 @@ def cfg(tmp_path, terra15_das_example_path, terra15_das_patch):
         time_window=0.02,
         time_overlap=0.01,
     )
+
+# Dummy KDE / Encoder used by utils & detector tests 
+class DummyKDE:
+    """Return a constant KDE score for every sample."""
+    def __init__(self, score): self.score = score
+    def score_samples(self, X): return np.full(len(X), self.score)
+
+
+class DummyEncoder:
+    """Fake encoder: output shape (4,4,1) and constant prediction."""
+    output_shape = (None, 4, 4, 1)
+    def predict(self, X, verbose=0): return [np.zeros((4, 4, 1))]
+
+
+@pytest.fixture
+def dummy_png(tmp_path):
+    """RGB 3×3 PNG on disk."""
+    img = Image.fromarray(np.zeros((3, 3, 3), dtype=np.uint8))
+    file_ = tmp_path / "img.png"
+    img.save(file_)
+    return file_
+
+
+# Heavy-dependency patching for detector tests
+def _fake_conv_layer(name):
+    class L:
+        def __init__(self): self.name = name
+        def get_weights(self): return [np.array([1])]
+        def set_weights(self, w): self._set_called = True
+    return L()
+
+
+def _fake_sequential():
+    seq = MagicMock(name="Sequential")
+    seq.layers = [
+        _fake_conv_layer("conv0"), MagicMock(), _fake_conv_layer("conv2"),
+        MagicMock(), _fake_conv_layer("conv4"),
+    ]
+    seq.output_shape = (None, 4, 4, 1)  
+
+    # adaptively build an ndarray so both _fit_kde and check_if_anomaly work
+    def _predict(x, verbose=0):
+        # Generator stub passes MagicMock with `.samples`
+        if hasattr(x, "samples"):
+            n = x.samples
+        else:  # list or array batch
+            n = len(x)
+        return np.zeros((n, 4, 4, 1), dtype=float)
+
+    seq.predict.side_effect = _predict
+    return seq
+
+
+@pytest.fixture
+def patched_tf(monkeypatch):
+    """
+    Patches for:
+      * keras.models.load_model
+      * tensorflow.keras.Sequential
+      * ImageDataGenerator
+      * sklearn.neighbors.KernelDensity
+    so detector tests run without heavy deps.
+    """
+    # fake trained AE returned by load_model 
+    fake_model = _fake_sequential()
+    monkeypatch.setattr(
+        "das_anomaly.detect.detector.load_model", lambda p: fake_model
+    )
+
+    # ----- Sequential used by _extract_encoder 
+    encoder_seq = _fake_sequential()
+    monkeypatch.setattr(
+        "das_anomaly.detect.detector.Sequential", lambda: encoder_seq
+    )
+
+    # ImageDataGenerator.flow_from_directory 
+    flow = MagicMock(samples=4)          # four training images
+    idg = MagicMock(flow_from_directory=lambda *a, **k: flow)
+    monkeypatch.setattr(
+        "das_anomaly.detect.detector.ImageDataGenerator", lambda *a, **k: idg
+    )
+
+    # KernelDensity.fit capture 
+    kde_fit_called = {}
+    class FakeKDE:
+        def __init__(self, *a, **k): pass
+        def fit(self, X):
+            kde_fit_called["shape"] = X.shape
+            return self
+        def score_samples(self, X): return np.array([0.9])
+    monkeypatch.setattr("das_anomaly.detect.detector.KernelDensity", FakeKDE)
+
+    return dict(fake_model=fake_model,
+                encoder_seq=encoder_seq,
+                kde_fit_called=kde_fit_called)

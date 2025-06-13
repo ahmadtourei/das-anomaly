@@ -1,5 +1,5 @@
 """
-Use the trained model to detect anomalies (potential seismic events.)
+Use the trained model to detect anomalies.
 """
 import glob
 import json
@@ -12,7 +12,6 @@ from sklearn.neighbors import KernelDensity
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
 from das_anomaly import check_if_anomaly
 from das_anomaly.settings import SETTINGS
 
