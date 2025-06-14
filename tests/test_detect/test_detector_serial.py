@@ -1,6 +1,6 @@
 """
-Comprehensive tests for das_anomaly.detect.detector
----------------------------------------------------
+Comprehensive tests for das_anomaly.detect.detector in serial mode
+------------------------------------------------------------------
 All heavy TF/Keras operations are mocked so the suite runs fast.
 """
 import json
@@ -45,7 +45,6 @@ class TestEncoderExtraction:
         assert any(getattr(l, "_set_called", False) for l in conv_layers)
 
 
-
 class TestKDEFitting:
     """KDE.fit receives flattened latent vectors."""
 
@@ -88,7 +87,6 @@ class TestRunEndToEnd:
 
 class TestCLI:
     """CLI entry-point smoke test."""
-
     def test_cli_invocation(self, tmp_path, monkeypatch, patched_tf, capsys):
         cfg_file = tmp_path / "cfg.json"
         json.dump({
@@ -107,3 +105,63 @@ class TestCLI:
         monkeypatch.setattr(AnomalyDetector, "run", lambda self: print("CLI OK"))
         AnomalyDetector._cli()
         assert "CLI OK" in capsys.readouterr().out
+
+    def test_cli_defaults(self, monkeypatch, capsys):
+        import sys
+        import das_anomaly.detect.detector as det_mod
+
+        # DetectConfig spy (records call, returns placeholder) 
+        call_log = {}
+        monkeypatch.setattr(
+            det_mod,
+            "DetectConfig",
+            lambda: call_log.setdefault("default_cfg", object()),
+        )
+
+        # neuter heavy constructor BEFORE _cli runs 
+        monkeypatch.setattr(
+            det_mod.AnomalyDetector, "__init__", lambda self, cfg: None
+        )
+        monkeypatch.setattr(
+            det_mod.AnomalyDetector, "run",
+            lambda self: print("DEFAULT OK")
+        )
+
+        # invoke CLI without --config 
+        monkeypatch.setattr(sys, "argv", ["detect-anomaly"])
+        det_mod.AnomalyDetector._cli()
+
+        # DetectConfig() actually executed
+        assert "default_cfg" in call_log      
+        assert "DEFAULT OK" in capsys.readouterr().out
+
+
+class TestRunSkipsNonDirs:
+    """`run()` should ignore items in psd_path that are *not* directories."""
+
+    def test_loose_file_is_ignored(self, tmp_path, patched_tf):
+        # PSD root contains one valid sub-dir and one stray file
+        psd_root = tmp_path / "psd"
+        psd_root.mkdir()
+        good_sub = psd_root / "rank_0"
+        good_sub.mkdir()
+        _make_dummy_png(good_sub / "img.png")
+
+        # stray file that must be skipped
+        stray = psd_root / "readme.txt"
+        stray.write_text("not a directory")
+
+        cfg = DetectConfig(psd_path=psd_root,
+                           results_path=tmp_path / "out",
+                           train_images_path=tmp_path,
+                           size=8, density_threshold=1_000)
+        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+
+        AnomalyDetector(cfg).run()
+
+        # only a log for the *directory* should exist
+        logs = list(cfg.results_path.glob("*_output_model_*_anomaly.txt"))
+        assert len(logs) == 1
+        assert "rank_0" in logs[0].name
+        # no log created for the stray file
+        assert "readme" not in logs[0].name

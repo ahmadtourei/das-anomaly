@@ -4,19 +4,19 @@ Run a trained auto-encoder to score PSD PNGs and copy any anomalies.
 Example
 -------
 >>> from das_anomaly.detect import DetectConfig, AnomalyDetector
+>>> # serial processing with single processor:
 >>> cfg = DetectConfig(psd_dir="~/psd_pngs", results_path="~/results")
 >>> AnomalyDetector(cfg).run()
+>>> # parallel processing with multiple processors using MPI:
+>>> AnomalyDetector(cfg).run_parallel()
 """
 from __future__ import annotations
 
 import argparse
 import json
-import glob
-import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 from keras.models import load_model, Sequential
@@ -26,7 +26,16 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from das_anomaly import check_if_anomaly
 from das_anomaly.settings import SETTINGS
-
+# optional MPI import 
+try:
+    from mpi4py import MPI  # noqa: N813  (we want the canonical upper‑case name)
+except ModuleNotFoundError:    
+    class _DummyComm:
+        """Stand‑in that mimics the tiny subset we use."""
+        def Get_rank(self): return 0
+        def Get_size(self): return 1
+        def bcast(self, obj, root=0): return obj
+    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()   # pragma: no cover
 
 # ------------------------------------------------------------------ #
 # configuration                                                      #
@@ -73,7 +82,7 @@ class AnomalyDetector:
     # public API                                                     #
     # -------------------------------------------------------------- #
     def run(self) -> None:
-        """Score every PSD PNG and log / copy anomalies."""
+        """Score every PSD PNG and log / copy anomalies with single processor."""
         for folder in self.cfg.psd_path.iterdir():
             if not folder.is_dir():
                 continue
@@ -93,6 +102,37 @@ class AnomalyDetector:
                     if flag.endswith("anomaly"):
                         shutil.copy(img_path, self.dest_dir)
 
+    def run_parallel(self) -> None:
+        """Score PSD PNGs in parallel (one folder per MPI rank)."""
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        world_size = comm.Get_size()           
+
+        # Materialise sub-folders once for every rank
+        subdirs: list[Path] = [p for p in self.cfg.psd_path.iterdir() if p.is_dir()]
+
+        for i in range(rank, len(subdirs), world_size):
+            folder_path: Path = subdirs[i]
+            spectra = sorted(folder_path.glob("*"))
+
+            out_file = (
+                self.cfg.results_path /
+                f"{folder_path.name}_output_model_{self.cfg.size}_anomaly.txt"
+            )
+
+            with out_file.open("w") as fh:
+                for j, img_path in enumerate(spectra):
+                    flag = check_if_anomaly(
+                        encoder_model=self.encoder,
+                        size=self.cfg.size,
+                        img_path=img_path,
+                        density_threshold=self.cfg.density_threshold,
+                        kde=self.kde,
+                    )
+                    print(f"Rank {rank} · line {j}, {img_path}: {flag}", file=fh)
+
+                    if flag.endswith("anomaly"):
+                        shutil.copy(img_path, self.dest_dir)
     # -------------------------------------------------------------- #
     # internal helpers                                               #
     # -------------------------------------------------------------- #
