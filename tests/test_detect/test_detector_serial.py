@@ -1,6 +1,6 @@
 """
-Comprehensive tests for das_anomaly.detect.detector
----------------------------------------------------
+Comprehensive tests for das_anomaly.detect.detector in serial mode
+------------------------------------------------------------------
 All heavy TF/Keras operations are mocked so the suite runs fast.
 """
 import json
@@ -43,7 +43,6 @@ class TestEncoderExtraction:
         conv_layers = [l for l in patched_tf["encoder_seq"].layers
                     if getattr(l, "name", "").startswith("conv")]
         assert any(getattr(l, "_set_called", False) for l in conv_layers)
-
 
 
 class TestKDEFitting:
@@ -107,3 +106,4 @@ class TestCLI:
         monkeypatch.setattr(AnomalyDetector, "run", lambda self: print("CLI OK"))
         AnomalyDetector._cli()
         assert "CLI OK" in capsys.readouterr().out
+
