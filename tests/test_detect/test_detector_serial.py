@@ -87,7 +87,6 @@ class TestRunEndToEnd:
 
 class TestCLI:
     """CLI entry-point smoke test."""
-
     def test_cli_invocation(self, tmp_path, monkeypatch, patched_tf, capsys):
         cfg_file = tmp_path / "cfg.json"
         json.dump({
@@ -106,6 +105,35 @@ class TestCLI:
         monkeypatch.setattr(AnomalyDetector, "run", lambda self: print("CLI OK"))
         AnomalyDetector._cli()
         assert "CLI OK" in capsys.readouterr().out
+
+    def test_cli_defaults(self, monkeypatch, capsys):
+        import sys
+        import das_anomaly.detect.detector as det_mod
+
+        # DetectConfig spy (records call, returns placeholder) 
+        call_log = {}
+        monkeypatch.setattr(
+            det_mod,
+            "DetectConfig",
+            lambda: call_log.setdefault("default_cfg", object()),
+        )
+
+        # neuter heavy constructor BEFORE _cli runs 
+        monkeypatch.setattr(
+            det_mod.AnomalyDetector, "__init__", lambda self, cfg: None
+        )
+        monkeypatch.setattr(
+            det_mod.AnomalyDetector, "run",
+            lambda self: print("DEFAULT OK")
+        )
+
+        # invoke CLI without --config 
+        monkeypatch.setattr(sys, "argv", ["detect-anomaly"])
+        det_mod.AnomalyDetector._cli()
+
+        # DetectConfig() actually executed
+        assert "default_cfg" in call_log      
+        assert "DEFAULT OK" in capsys.readouterr().out
 
 
 class TestRunSkipsNonDirs:
