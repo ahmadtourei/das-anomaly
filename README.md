@@ -41,7 +41,7 @@ The main steps for using the package are as follows:
 1. Define constants: 
 Using the _user_defaults_ script in the das_anomaly directory, define the constants and directory paths (for data, PSD images, detected anomaly results, etc.)
 2. Get a fixed value for the upper bound of PSD amplitudes:
-To ensure that all the PSD images have the same colorbar range, we need to get a appropriate value for CLIP_VALUE_MAX in the _user_defaults_ script. To do so, we need to use get_psd_max_clip function to calculate this value from a portion (TIME_WINDOW) of the data with no anomalies (i.e., background noise data).
+To ensure that all the PSD images have the same colorbar range, we need to get an appropriate value for CLIP_VALUE_MAX in the _user_defaults_ script. To do so, we need to use the `get_psd_max_clip` function to calculate this value from a portion (TIME_WINDOW) of the data with no anomalies (i.e., background noise data).
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -54,7 +54,7 @@ clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
-Then, use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, we create a spool of DAS data and transform it to strain rate and apply a detrend function.Then, we average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. We create PSD of anomaly-free images (usually background noise) and known seismic events. We can use MPI to distribute plotting PSDs over CPUs. 
+Then, use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, we create a spool of DAS data and transform it to strain rate and apply a detrend function. Then, we average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. We create PSDs of anomaly-free images (usually background noise) and known seismic events. We can use MPI to distribute plotting PSDs over CPUs. 
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -69,7 +69,7 @@ PSDGenerator(cfg).run()
 PSDGenerator(cfg).run_parallel()
 ```
 4. Train: 
-The `das_anomaly.train` module helps with randomly selecting train and test PSD images and train the model on anomaly-free PSD images. 
+The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model on anomaly-free PSD images. 
 ### Example
 ```python
 from das_anomaly.settings import SETTINGS
@@ -89,10 +89,12 @@ AutoencoderTrainer(cfg).run()
 5. Test and set a threshold: 
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
 6. Run the trained model: 
-The `das_anomaly.detect` module applies trained model on the data, detect anomalies in the PSD images, and write their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies.
+The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies.
 ### Example
 ```python
+from das_anomaly.count.counter import CounterConfig, AnomalyCounter
 from das_anomaly.detect import DetectConfig, AnomalyDetector
+
 psd_path = SETTINGS.PSD_PATH
 results_path = SETTINGS.RESULTS_PATH
 # serial processing with single processor:
@@ -102,7 +104,6 @@ AnomalyDetector(cfg).run()
 AnomalyDetector(cfg).run_parallel()
 
 # count number of anomalies
-from das_anomaly.count.counter import CounterConfig, AnomalyCounter
 cfg = CounterConfig(keyword="anomaly")
 total = AnomalyCounter(cfg).run()
 num = len(total)
@@ -118,7 +119,7 @@ print(f'Total number of detected anomalies: {num}')
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
 
-Installation and loding of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
 
 ## Note
 Still under development. Use with caution.
