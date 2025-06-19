@@ -7,6 +7,7 @@ Do not edit. Edit the config_user.py script instead.
 
 # Path to the data
 DATA_PATH = "/path/to/the/das/data"
+BN_DATA_PATH = "/path/to/the/das/background_noise_data"
 # Start and end time for the data spool
 T_1 = "2022-12-01 00:00:00"
 T_2 = "2022-12-08 00:00:00"
@@ -24,6 +25,8 @@ DENSITY_THRESHOLD = 5_000
 CLIP_VALUE_MAX = 1e-6
 
 # Set parameters for preprocessing the data
+MIN_FREQ = 0
+MAX_FREQ = 250
 STEP_MULTIPLE = 2  # gauge length to channel spacing ratio
 START_CHANNEL = 0
 END_CHANNEL = 800

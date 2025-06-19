@@ -119,6 +119,30 @@ def encoder(size):
     return model
 
 
+def get_psd_max_clip(patch_strain, min_freq, max_freq, sampling_rate, percentile=95):
+    """
+    Return the given percentile of the data in frequency domain.
+    This value serve as a the upper bound of the colorbar for PSD
+    plotting, which will be fixed for all PSDs.
+    """
+    strain_rate = patch_strain.transpose("time", "distance").data  # pragma: no cover
+    # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
+    spect = ft.fft(strain_rate, axis=0)
+    n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
+    amplitude_spec = np.absolute(spect[:n_frq_bins, :])
+    # Calculate indices corresponding to the frequencies of interest
+    nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
+    # convert frequencies to an index in the array
+    hz_per_bin = nyquist_frq / float(n_frq_bins)
+    min_frq_idx = int(min_freq / hz_per_bin)
+    max_frq_idx = int(max_freq / hz_per_bin)
+
+    clip_val_max = np.percentile(
+        np.absolute(amplitude_spec[min_frq_idx:max_frq_idx, :]), percentile
+    )
+    return clip_val_max
+
+
 def plot_spec(
     patch_strain,
     min_freq,

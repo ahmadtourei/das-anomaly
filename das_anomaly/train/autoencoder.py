@@ -11,7 +11,7 @@ Example
 >>> num_epoch = SETTINGS.NUM_EPOCH
 >>> ratio = SETTINGS.RATIO
 >>> cfg = TrainAEConfig(num_epoch=num_epoch, ratio=ratio)
->>> AutoencoderTrainer(cfg).run()          # fits and saves model and plots
+>>> AutoencoderTrainer(cfg).run() # fits and saves model and plots
 """
 
 from __future__ import annotations

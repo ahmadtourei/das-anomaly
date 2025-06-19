@@ -9,6 +9,7 @@ hyper-parameters.
 
 # Path to the data
 DATA_PATH = "/path/to/the/das/data"
+BN_DATA_PATH = "/path/to/the/das/background_noise_data"
 # Start and end time for the data spool
 T_1 = "2023-01-23 00:00:00"
 T_2 = "2023-02-00 00:00:00"
@@ -26,6 +27,8 @@ DENSITY_THRESHOLD = 20_485.340556576524
 CLIP_VALUE_MAX = 7e-6
 
 # Set parameters for preprocessing the data
+MIN_FREQ = 0
+MAX_FREQ = 10
 STEP_MULTIPLE = 2  # gauge length to channel spacing ratio
 START_CHANNEL = 0
 END_CHANNEL = 800

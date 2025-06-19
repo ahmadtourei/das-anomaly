@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 
     MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()  # pragma: no cover
 
-from das_anomaly import plot_spec
+from das_anomaly import get_psd_max_clip, plot_spec
 from das_anomaly.settings import SETTINGS
 
 
@@ -64,8 +64,8 @@ class PSDConfig:
     t2: np.datetime64 | None = attr_t2
 
     # derived / overrideable
-    min_freq: float = 0.0
-    max_freq_safety_factor: float = 0.9  # 0.9 * Nyquist by default
+    min_freq: float = SETTINGS.MIN_FREQ
+    max_freq: float = SETTINGS.MAX_FREQ
 
     def __post_init__(self):
         self.data_path = Path(self.data_path).expanduser()
@@ -83,16 +83,30 @@ class PSDGenerator:
     # Public API
     # --------------------------------------------------------------------- #
     def run(self) -> None:
-        """Entry point - iterate over patches and produce PSD plots."""
+        """
+        Entry point - iterate over patches and produce PSD plots.
+        """
         for patch in self._iter_patches():
             self._plot_patch(patch)
 
     def run_parallel(self) -> None:
-        """Entry point - iterate over patches using MPI and produce PSD plots.
+        """
+        Entry point - iterate over patches using MPI and produce PSD plots.
         Each patch is assigned to one MPI rank (i.e., processor).
         """
         for patch in self._iter_patches_parallel():
             self._plot_patch(patch)
+
+    def run_get_psd_val(self) -> None:
+        """
+        Entry point - iterate over patches and get the mean value of max
+        value for clipping colorbar.
+        """
+        values: list[float] = []
+        for patch in self._iter_patches():
+            val = self._get_max_clip(patch)
+            values.append(val)
+        return float(np.mean(values)) if values else float("nan")
 
     # --------------------------------------------------------------------- #
     # Internals
@@ -157,7 +171,7 @@ class PSDGenerator:
         else:
             sub_sp_chunked = sr = None
 
-        # Broadcast the variables to other ranks
+        # broadcast the variables to other ranks
         sub_sp_chunked = comm.bcast(sub_sp_chunked, root=0)
         sr = comm.bcast(sr, root=0)
 
@@ -177,18 +191,28 @@ class PSDGenerator:
         """Handle a single patch to PSD plot."""
         patch, sampling_rate = patch_sr_tuple
 
-        max_freq = self.cfg.max_freq_safety_factor * 0.5 * sampling_rate
         title = patch.get_patch_name()
 
         plot_spec(
             patch,
             self.cfg.min_freq,
-            max_freq,
+            self.cfg.max_freq,
             sampling_rate,
             title,
             output_rank=0,  # keeps MPI + serial use happy
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
+        )
+
+    def _get_max_clip(self, patch_sr_tuple):
+        """Handle a single patch to the max value for colorbar clipping."""
+        patch, sampling_rate = patch_sr_tuple
+
+        return get_psd_max_clip(
+            patch,
+            self.cfg.min_freq,
+            self.cfg.max_freq,
+            sampling_rate,
         )
 
     # ------------------------------------------------------------------ #
