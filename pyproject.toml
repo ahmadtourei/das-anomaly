@@ -55,7 +55,7 @@ extras = [
     "mpi4py"
 ]
 
-test = [
+dev = [
     "pre-commit",
     "ruff",
     "pooch",
