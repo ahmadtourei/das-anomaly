@@ -1,0 +1,30 @@
+exclude: scripts/_templates
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix, --diff]
+      - id: ruff-format
+
+  - repo: https://github.com/frostming/fix-future-annotations
+    rev: 0.5.0
+    hooks:
+      - id: fix-future-annotations
+        files: \.py$
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      - id: nbstripout
+        files: \.ipynb$

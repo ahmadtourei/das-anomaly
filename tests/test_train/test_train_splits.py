@@ -2,7 +2,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from das_anomaly.train import TrainSplitConfig, ImageSplitter
+
+from das_anomaly.train import ImageSplitter, TrainSplitConfig
 
 
 def _build_fake_psd_tree(tmp_path: Path, n_png: int):

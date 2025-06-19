@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock
-import json
 
 import pytest
-from das_anomaly.train import TrainAEConfig, AutoencoderTrainer
- 
+
+from das_anomaly.train import AutoencoderTrainer, TrainAEConfig
+
 
 @pytest.fixture
 def dummy_cfg(tmp_path):
@@ -29,14 +29,14 @@ def test_trainer_build_and_save(monkeypatch, dummy_cfg):
     monkeypatch.setattr(
         "das_anomaly.train.autoencoder.encoder", lambda size: fake_model
     )
-    monkeypatch.setattr(
-        "das_anomaly.train.autoencoder.decoder", lambda model: model
-    )
+    monkeypatch.setattr("das_anomaly.train.autoencoder.decoder", lambda model: model)
     monkeypatch.setattr(
         "das_anomaly.train.autoencoder.ImageDataGenerator",
-        MagicMock(return_value=MagicMock(
-            flow_from_directory=MagicMock(return_value=MagicMock(samples=4))
-        )),
+        MagicMock(
+            return_value=MagicMock(
+                flow_from_directory=MagicMock(return_value=MagicMock(samples=4))
+            )
+        ),
     )
 
     # run
@@ -50,26 +50,29 @@ def test_trainer_build_and_save(monkeypatch, dummy_cfg):
 
 
 def test_saved_files(tmp_path, monkeypatch):
-    cfg = TrainAEConfig(train_dir=tmp_path, test_dir=tmp_path,
-                        out_dir=tmp_path / "out", img_size=16,
-                        batch_size=1, num_epoch=1)
+    cfg = TrainAEConfig(
+        train_dir=tmp_path,
+        test_dir=tmp_path,
+        out_dir=tmp_path / "out",
+        img_size=16,
+        batch_size=1,
+        num_epoch=1,
+    )
 
-    # fake out heavy deps 
+    # fake out heavy deps
     fake_hist = {"loss": [0.1], "val_loss": [0.1]}
     keras_model = MagicMock(name="Model")
     keras_model.fit.return_value.history = fake_hist
     keras_model.layers = [MagicMock(name="Encoder")]
-    monkeypatch.setattr(
-        "das_anomaly.train.autoencoder.encoder", lambda s: keras_model
-    )
-    monkeypatch.setattr(
-        "das_anomaly.train.autoencoder.decoder", lambda m: m
-    )
+    monkeypatch.setattr("das_anomaly.train.autoencoder.encoder", lambda s: keras_model)
+    monkeypatch.setattr("das_anomaly.train.autoencoder.decoder", lambda m: m)
     monkeypatch.setattr(
         "das_anomaly.train.autoencoder.ImageDataGenerator",
-        MagicMock(return_value=MagicMock(
-            flow_from_directory=MagicMock(return_value=MagicMock(samples=2))
-        ))
+        MagicMock(
+            return_value=MagicMock(
+                flow_from_directory=MagicMock(return_value=MagicMock(samples=2))
+            )
+        ),
     )
     monkeypatch.setattr(
         "das_anomaly.train.autoencoder.plot_train_test_loss", lambda h, p: None
@@ -77,10 +80,11 @@ def test_saved_files(tmp_path, monkeypatch):
 
     AutoencoderTrainer(cfg).run()
 
-    # artifacts really exist 
+    # artifacts really exist
     # model + encoder were asked to save to the expected locations
-    keras_model.save.assert_called_with(cfg.out_dir / "model_16.h5",
-                                        include_optimizer=False)
+    keras_model.save.assert_called_with(
+        cfg.out_dir / "model_16.h5", include_optimizer=False
+    )
     keras_model.layers[0].save.assert_called_with(
         cfg.out_dir / "encoder_model_16", save_format="tf"
     )

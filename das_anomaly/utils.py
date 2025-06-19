@@ -1,15 +1,16 @@
 """
 Utility functions for anomaly detection in DAS datasets using autoencoders.
 """
+
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import scipy.fftpack as ft
-
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
+from tensorflow.keras.models import Sequential
 
 from das_anomaly.settings import SETTINGS
 
@@ -43,7 +44,9 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     """Check whether the image is an anomaly"""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input
     encoder_output_shape = encoder_model.output_shape
-    out_vector_shape = encoder_output_shape[1] * encoder_output_shape[2] * encoder_output_shape[3]
+    out_vector_shape = (
+        encoder_output_shape[1] * encoder_output_shape[2] * encoder_output_shape[3]
+    )
 
     img = Image.open(img_path)
     if img.mode == "RGBA":
@@ -64,29 +67,37 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
 
 def decoder(model):
     """Imports decoder model."""
-    model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
+    model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
-    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+    model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
-    model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+    model.add(Conv2D(64, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
 
-    return model.add(Conv2D(3, (3, 3), activation='sigmoid', padding='same'))
+    return model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
 
 
 def density(encoder_model, batch_images, kde):
     """Caulculate the density score."""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input
     encoder_output_shape = encoder_model.output_shape
-    out_vector_shape = encoder_output_shape[1] * encoder_output_shape[2] * encoder_output_shape[3]
+    out_vector_shape = (
+        encoder_output_shape[1] * encoder_output_shape[2] * encoder_output_shape[3]
+    )
 
     density_list = []
     for im in range(0, batch_images.shape[0]):
         img = batch_images[im]
         img = img[np.newaxis, :, :, :]
-        encoded_img = encoder_model.predict([[img]], verbose=0)  # Create a compressed version of the image using the encoder
-        encoded_img = [np.reshape(img, (out_vector_shape)) for img in encoded_img]  # Flatten the compressed image
-        density = kde.score_samples(encoded_img)[0]  # get a density score for the new image
+        encoded_img = encoder_model.predict(
+            [[img]], verbose=0
+        )  # Create a compressed version of the image using the encoder
+        encoded_img = [
+            np.reshape(img, (out_vector_shape)) for img in encoded_img
+        ]  # Flatten the compressed image
+        density = kde.score_samples(encoded_img)[
+            0
+        ]  # get a density score for the new image
         density_list.append(density)
 
     return np.array(density_list)
@@ -95,13 +106,41 @@ def density(encoder_model, batch_images, kde):
 def encoder(size):
     """Imports the encoder model."""
     model = Sequential()
-    model.add(Conv2D(64, (3, 3), activation='relu', padding='same', input_shape=(size, size, 3)))
-    model.add(MaxPooling2D((2, 2), padding='same'))
-    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), padding='same'))
-    model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), padding='same'))
+    model.add(
+        Conv2D(
+            64, (3, 3), activation="relu", padding="same", input_shape=(size, size, 3)
+        )
+    )
+    model.add(MaxPooling2D((2, 2), padding="same"))
+    model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
+    model.add(MaxPooling2D((2, 2), padding="same"))
+    model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
+    model.add(MaxPooling2D((2, 2), padding="same"))
     return model
+
+
+def get_psd_max_clip(patch_strain, min_freq, max_freq, sampling_rate, percentile=95):
+    """
+    Return the given percentile of the data in frequency domain.
+    This value serve as a the upper bound of the colorbar for PSD
+    plotting, which will be fixed for all PSDs.
+    """
+    strain_rate = patch_strain.transpose("time", "distance").data  # pragma: no cover
+    # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
+    spect = ft.fft(strain_rate, axis=0)
+    n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
+    amplitude_spec = np.absolute(spect[:n_frq_bins, :])
+    # Calculate indices corresponding to the frequencies of interest
+    nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
+    # convert frequencies to an index in the array
+    hz_per_bin = nyquist_frq / float(n_frq_bins)
+    min_frq_idx = int(min_freq / hz_per_bin)
+    max_frq_idx = int(max_freq / hz_per_bin)
+
+    clip_val_max = np.percentile(
+        np.absolute(amplitude_spec[min_frq_idx:max_frq_idx, :]), percentile
+    )
+    return clip_val_max
 
 
 def plot_spec(
@@ -114,32 +153,30 @@ def plot_spec(
     fig_path,
     dpi,
 ):
-    """Save the power spectral density (Channel-Frequency-Amplitude) plot in a directory."""
+    """Save the power spectral density (Channel-Frequency-Amplitude) plot."""
     # Get the data
-    strain_rate = patch_strain.transpose("time", "distance").data # pragma: no cover
+    strain_rate = patch_strain.transpose("time", "distance").data  # pragma: no cover
     # Get coords info
     dist_coord = patch_strain.coords.get_coord("distance")
     dist_min = dist_coord.min()
     dist_max = dist_coord.max()
     # Check for valid inputs (note - these checks aren't exhaustive)
     if max_freq <= min_freq:
-        print("Error in plot_spec inputs: minFrq " + str(min_freq) + " >= maxFrq " + str(max_freq))
-        return
+        raise ValueError(
+            f"`min_freq` {min_freq} must be less than "
+            f"or equal to `max_freq` {max_freq}."
+        )
     # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
-    spect = ft.fft(strain_rate, axis=0) 
+    spect = ft.fft(strain_rate, axis=0)
     n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
     amplitude_spec = np.absolute(spect[:n_frq_bins, :])
     # Calculate indices corresponding to the frequencies of interest
     nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
     # Make sure maxFrq doesn't exceed Nyquist frequency
     if max_freq > nyquist_frq:
-        print(
-            "Error in plot_spec inputs: max_frq "
-            + str(max_freq)
-            + " >= Nyquist frequency "
-            + str(nyquist_frq)
-            + " indicated by sampleRate "
-            + str(sampling_rate)
+        raise ValueError(
+            f"`max_freq` {max_freq} must be less than "
+            f"`nyquist frequency` {nyquist_frq}."
         )
     # convert frequencies to an index in the array
     hz_per_bin = nyquist_frq / float(n_frq_bins)
@@ -147,14 +184,14 @@ def plot_spec(
     max_frq_idx = int(max_freq / hz_per_bin)
     # Plot
     _, ax = plt.subplots(figsize=(12, 12))
-    clip_val_max = SETTINGS.CLIP_VALUE_MAX # pragma: no cover
+    clip_val_max = SETTINGS.CLIP_VALUE_MAX  # pragma: no cover
     clip_val_min = 0
     # Define the colors in RGB
     colors = [
         (1, 0, 0),  # Red
         (0, 1, 0),  # Green
         (0, 0, 1),  # Blue
-    ]  
+    ]
     # Create the colormap
     n_bins = 100  # Increase for smoother transitions
     cmap_name = "rgb_custom_cmap"
@@ -169,7 +206,7 @@ def plot_spec(
         vmax=clip_val_max,
     )
     # Hide the axes
-    ax.axis("off") # pragma: no cover
+    ax.axis("off")  # pragma: no cover
     # Hide the ticks
     ax.set_xticks([])
     ax.set_yticks([])

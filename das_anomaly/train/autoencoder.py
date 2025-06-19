@@ -10,15 +10,16 @@ Example
 >>> from das_anomaly.train import TrainAEConfig, AutoencoderTrainer
 >>> num_epoch = SETTINGS.NUM_EPOCH
 >>> ratio = SETTINGS.RATIO
->>> cfg = TrainAEConfig(num_epoch=num_epoch, ratio=ratio) 
->>> AutoencoderTrainer(cfg).run()          # fits and saves model and plots
+>>> cfg = TrainAEConfig(num_epoch=num_epoch, ratio=ratio)
+>>> AutoencoderTrainer(cfg).run() # fits and saves model and plots
 """
+
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import tensorflow as tf
@@ -35,21 +36,21 @@ from das_anomaly.settings import SETTINGS
 class TrainAEConfig:
     """All knobs for autoencoder training (mirrors SETTINGS defaults)."""
 
-    # directories 
+    # directories
     train_dir: Path | str = SETTINGS.TRAIN_IMAGES_PATH
     test_dir: Path | str = SETTINGS.TEST_IMAGES_PATH
     out_dir: Path | str = SETTINGS.TRAINED_PATH
 
-    # data & training parameters 
+    # data & training parameters
     img_size: int = SETTINGS.SIZE
     batch_size: int = SETTINGS.BATCH_SIZE
     num_epoch: int = SETTINGS.NUM_EPOCH
 
-    # augmentation / preprocessing 
+    # augmentation / preprocessing
     rescale: float = 1.0 / 255
 
-    # random seed for reproducibility 
-    seed: Optional[int] = 42
+    # random seed for reproducibility
+    seed: int | None = 42
 
     def __post_init__(self):
         self.train_dir = Path(self.train_dir).expanduser()
@@ -80,6 +81,7 @@ class AutoencoderTrainer:
     # public API                                                         #
     # ------------------------------------------------------------------ #
     def run(self) -> None:
+        """Fit the model, save it, and plot loss curves to cfg.out_dir."""
         history = self._fit()
         self._save_model(history)
         plot_train_test_loss(history, self.cfg.out_dir)
@@ -152,14 +154,12 @@ class AutoencoderTrainer:
     # ------------------------------------------------------------------ #
     @staticmethod
     def _cli():
-        import argparse, json as _json, sys
-
         p = argparse.ArgumentParser(description="Train AE on PSD images")
         p.add_argument("--config", help="JSON file with TrainAEConfig fields")
         args = p.parse_args()
 
         if args.config:
-            cfg = TrainAEConfig(**_json.load(open(args.config)))
+            cfg = TrainAEConfig(**json.load(open(args.config)))
         else:
             cfg = TrainAEConfig()  # defaults
 

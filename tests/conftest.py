@@ -1,15 +1,14 @@
 from unittest.mock import MagicMock
-import numpy as np
-from PIL import Image
-import pytest
 
-import dascore as dc
+import numpy as np
+import pytest
 from dascore.compat import random_state
 from dascore.core import Patch
 from dascore.io.core import read
 from dascore.utils.downloader import fetch
+from PIL import Image
 
-from das_anomaly.psd import PSDConfig      
+from das_anomaly.psd import PSDConfig
 
 
 @pytest.fixture()
@@ -20,7 +19,7 @@ def dummy_patch() -> Patch:
     Note: This cant be a fixture as pytest seems to hold a reference,
     even for function scoped outputs.
     """
-    attrs = {'data_type': 'velocity', 'time_step': 0.1}
+    attrs = {"data_type": "velocity", "time_step": 0.1}
     pa = Patch(
         data=random_state.random((100, 100)),
         coords={"time": np.arange(100) * 0.1, "distance": np.arange(100) * 0.2},
@@ -70,22 +69,30 @@ def cfg(tmp_path, terra15_das_example_path, terra15_das_patch):
         time_overlap=0.01,
     )
 
-# Dummy KDE / Encoder used by utils & detector tests 
+
+# Dummy KDE / Encoder used by utils & detector tests
 class DummyKDE:
     """Return a constant KDE score for every sample."""
-    def __init__(self, score): self.score = score
-    def score_samples(self, X): return np.full(len(X), self.score)
+
+    def __init__(self, score):
+        self.score = score
+
+    def score_samples(self, x):
+        return np.full(len(x), self.score)
 
 
 class DummyEncoder:
     """Fake encoder: output shape (4,4,1) and constant prediction."""
+
     output_shape = (None, 4, 4, 1)
-    def predict(self, X, verbose=0): return [np.zeros((4, 4, 1))]
+
+    def predict(self, x, verbose=0):
+        return [np.zeros((4, 4, 1))]
 
 
 @pytest.fixture
 def dummy_png(tmp_path):
-    """RGB 3×3 PNG on disk."""
+    """RGB 3*3 PNG on disk."""
     img = Image.fromarray(np.zeros((3, 3, 3), dtype=np.uint8))
     file_ = tmp_path / "img.png"
     img.save(file_)
@@ -95,19 +102,28 @@ def dummy_png(tmp_path):
 # Heavy-dependency patching for detector tests
 def _fake_conv_layer(name):
     class L:
-        def __init__(self): self.name = name
-        def get_weights(self): return [np.array([1])]
-        def set_weights(self, w): self._set_called = True
+        def __init__(self):
+            self.name = name
+
+        def get_weights(self):
+            return [np.array([1])]
+
+        def set_weights(self, w):
+            self._set_called = True
+
     return L()
 
 
 def _fake_sequential():
     seq = MagicMock(name="Sequential")
     seq.layers = [
-        _fake_conv_layer("conv0"), MagicMock(), _fake_conv_layer("conv2"),
-        MagicMock(), _fake_conv_layer("conv4"),
+        _fake_conv_layer("conv0"),
+        MagicMock(),
+        _fake_conv_layer("conv2"),
+        MagicMock(),
+        _fake_conv_layer("conv4"),
     ]
-    seq.output_shape = (None, 4, 4, 1)  
+    seq.output_shape = (None, 4, 4, 1)
 
     # adaptively build an ndarray so both _fit_kde and check_if_anomaly work
     def _predict(x, verbose=0):
@@ -132,35 +148,37 @@ def patched_tf(monkeypatch):
       * sklearn.neighbors.KernelDensity
     so detector tests run without heavy deps.
     """
-    # fake trained AE returned by load_model 
+    # fake trained AE returned by load_model
     fake_model = _fake_sequential()
-    monkeypatch.setattr(
-        "das_anomaly.detect.detector.load_model", lambda p: fake_model
-    )
+    monkeypatch.setattr("das_anomaly.detect.detector.load_model", lambda p: fake_model)
 
-    # ----- Sequential used by _extract_encoder 
+    # ----- Sequential used by _extract_encoder
     encoder_seq = _fake_sequential()
-    monkeypatch.setattr(
-        "das_anomaly.detect.detector.Sequential", lambda: encoder_seq
-    )
+    monkeypatch.setattr("das_anomaly.detect.detector.Sequential", lambda: encoder_seq)
 
-    # ImageDataGenerator.flow_from_directory 
-    flow = MagicMock(samples=4)          # four training images
+    # ImageDataGenerator.flow_from_directory
+    flow = MagicMock(samples=4)  # four training images
     idg = MagicMock(flow_from_directory=lambda *a, **k: flow)
     monkeypatch.setattr(
         "das_anomaly.detect.detector.ImageDataGenerator", lambda *a, **k: idg
     )
 
-    # KernelDensity.fit capture 
+    # KernelDensity.fit capture
     kde_fit_called = {}
+
     class FakeKDE:
-        def __init__(self, *a, **k): pass
-        def fit(self, X):
-            kde_fit_called["shape"] = X.shape
+        def __init__(self, *a, **k):
+            pass
+
+        def fit(self, x):
+            kde_fit_called["shape"] = x.shape
             return self
-        def score_samples(self, X): return np.array([0.9])
+
+        def score_samples(self, x):
+            return np.array([0.9])
+
     monkeypatch.setattr("das_anomaly.detect.detector.KernelDensity", FakeKDE)
 
-    return dict(fake_model=fake_model,
-                encoder_seq=encoder_seq,
-                kde_fit_called=kde_fit_called)
+    return dict(
+        fake_model=fake_model, encoder_seq=encoder_seq, kde_fit_called=kde_fit_called
+    )

@@ -2,11 +2,13 @@
 Centralised settings object.  Import this *everywhere* instead of
 importing config_defaults or user_config directly.
 """
+
 from importlib import import_module
 from types import SimpleNamespace
 
 # 1. start with shipped defaults
 from . import config_defaults as _defaults
+
 _settings = {k: v for k, v in vars(_defaults).items() if k.isupper()}
 
 # 2. try to pull in user overrides (optional)
