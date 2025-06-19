@@ -16,6 +16,7 @@ Example
 
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -153,15 +154,12 @@ class AutoencoderTrainer:
     # ------------------------------------------------------------------ #
     @staticmethod
     def _cli():
-        import argparse
-        import json as _json
-
         p = argparse.ArgumentParser(description="Train AE on PSD images")
         p.add_argument("--config", help="JSON file with TrainAEConfig fields")
         args = p.parse_args()
 
         if args.config:
-            cfg = TrainAEConfig(**_json.load(open(args.config)))
+            cfg = TrainAEConfig(**json.load(open(args.config)))
         else:
             cfg = TrainAEConfig()  # defaults
 

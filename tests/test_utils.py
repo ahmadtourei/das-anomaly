@@ -10,12 +10,16 @@ from types import SimpleNamespace
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from keras.layers import Conv2D, MaxPooling2D, UpSampling2D
+from keras.models import Sequential
 from PIL import Image
 
 from das_anomaly.utils import (
     calculate_percentile,
     check_if_anomaly,
+    decoder,
     density,
+    encoder,
     plot_spec,
     plot_train_test_loss,
     search_keyword_in_files,
@@ -116,6 +120,55 @@ class TestDensity:
         scores = density(enc, batch, kde)
         assert np.allclose(scores, 0.7)
         assert scores.shape == (5,)
+
+
+class TestTrainer:
+    def test_encoder_architecture(self):
+        """encoder() returns 3*(Conv→Pool) stack and ends with 16 filters."""
+        size = 32
+        enc: Sequential = encoder(size)
+
+        # layer order check: Conv, Pool, Conv, Pool, Conv, Pool
+        types = [type(layer) for layer in enc.layers]
+        assert types == [
+            Conv2D,
+            MaxPooling2D,
+            Conv2D,
+            MaxPooling2D,
+            Conv2D,
+            MaxPooling2D,
+        ]
+
+        # last Conv2D has 16 output channels
+        last_conv: Conv2D = enc.layers[-2]
+        assert last_conv.filters == 16
+
+    def test_decoder_appends_layers(self):
+        enc = encoder(32)
+        n_before = len(enc.layers)
+
+        decoder(enc)
+
+        # 7 layers added
+        assert len(enc.layers) == n_before + 7
+
+        # pattern: Conv ▸ UpSample repeated + final Conv
+        added = enc.layers[n_before:]
+        expected = [
+            Conv2D,
+            UpSampling2D,
+            Conv2D,
+            UpSampling2D,
+            Conv2D,
+            UpSampling2D,
+            Conv2D,
+        ]
+        assert [type(l) for l in added] == expected
+
+        last = enc.layers[-1]
+        assert isinstance(last, Conv2D)
+        assert last.filters == 3
+        assert last.activation.__name__ == "sigmoid"
 
 
 class DummyCoords:
