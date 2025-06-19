@@ -1,13 +1,16 @@
 """
 Tests for utility functions in das_anomaly.utils
 """
-from types import SimpleNamespace
+
+from __future__ import annotations
+
 from pathlib import Path
-from PIL import Image
+from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from PIL import Image
 
 from das_anomaly.utils import (
     calculate_percentile,
@@ -52,24 +55,31 @@ class TestSearchKeyword:
         count, lines = search_keyword_in_files(tmp_path, "apple")
         assert count == 3
         assert len(lines) == 3
-        assert all("apple" in l for l in lines)
+        assert all("apple" in li for li in lines)
 
 
 class DummyKDE:
     """Return a constant KDE score for every sample."""
-    def __init__(self, score): self.score = score
-    def score_samples(self, X): return np.full(len(X), self.score)
+
+    def __init__(self, score):
+        self.score = score
+
+    def score_samples(self, x):
+        return np.full(len(x), self.score)
 
 
 class DummyEncoder:
     """Fake encoder: output shape (4,4,1) and constant prediction."""
+
     output_shape = (None, 4, 4, 1)
-    def predict(self, X, verbose=0): return [np.zeros((4, 4, 1))]
+
+    def predict(self, x, verbose=0):
+        return [np.zeros((4, 4, 1))]
 
 
 @pytest.fixture
 def dummy_png(tmp_path: Path):
-    """RGB 3×3 dummy image saved as PNG."""
+    """RGB 3*3 dummy image saved as PNG."""
     img = Image.fromarray(np.zeros((3, 3, 3), dtype=np.uint8))
     file_ = tmp_path / "img.png"
     img.save(file_)
@@ -109,7 +119,8 @@ class TestDensity:
 
 
 class DummyCoords:
-    def get_coord(self, _): return np.arange(10)
+    def get_coord(self, _):
+        return np.arange(10)
 
 
 def _dummy_patch():
@@ -122,15 +133,34 @@ def _dummy_patch():
 class TestPlotSpec:
     """Input-validation branches in plot_spec"""
 
-    def test_nyquist_warning(self, tmp_path, monkeypatch, capsys):
+    def test_nyquist_warning(self, tmp_path, monkeypatch):
+        """max_freq > nyquist should raise."""
         monkeypatch.setattr(plt, "savefig", lambda *a, **k: None)
-        plot_spec(_dummy_patch(), 0, 600, 1000, "t", 0, tmp_path, 72)
-        assert "max_frq" in capsys.readouterr().out
 
-    def test_min_ge_max(self, tmp_path, monkeypatch, capsys):
+        min_freq = 0
+        max_freq = 600
+        sampling_rate = 1000
+
+        with pytest.raises(
+            ValueError,
+            match=rf"`max_freq` {max_freq} must be less than `nyquist frequency` 500",
+        ):
+            plot_spec(
+                _dummy_patch(), min_freq, max_freq, sampling_rate, "t", 0, tmp_path, 72
+            )
+
+    def test_min_max_freq(self, tmp_path, monkeypatch):
+        """min_freq ≥ max_freq should raise."""
         monkeypatch.setattr(plt, "savefig", lambda *a, **k: None)
-        plot_spec(_dummy_patch(), 100, 50, 1000, "t", 0, tmp_path, 72)
-        assert "minFrq 100 >= maxFrq 50" in capsys.readouterr().out
+
+        min_freq = 100
+        max_freq = 50
+        with pytest.raises(
+            ValueError,
+            match=f"`min_freq` {min_freq} must be less than or "
+            f"equal to `max_freq` {max_freq}",
+        ):
+            plot_spec(_dummy_patch(), min_freq, max_freq, 1000, "t", 0, tmp_path, 72)
 
 
 class TestPlotTrainTestLoss:

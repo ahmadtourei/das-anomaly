@@ -44,6 +44,7 @@ class CounterConfig:
     # derived output file
     @property
     def summary_file(self) -> Path:
+        """Configurate file path for writing counted results."""
         return self.results_path / f"{self.keyword}_{self.results_folder_name}.txt"
 
 
@@ -74,6 +75,5 @@ class AnomalyCounter:
 
         with self.cfg.summary_file.open("w") as fh:
             fh.write("\n".join(lines))
-
-        print(f"Total '{self.cfg.keyword}' lines:", total)
-        return total
+        sr = f"Total '{self.cfg.keyword}' lines: {total}"
+        return sr

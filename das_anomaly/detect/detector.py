@@ -10,6 +10,7 @@ Example
 >>> # parallel processing with multiple processors using MPI:
 >>> AnomalyDetector(cfg).run_parallel()
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,24 +19,33 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-from keras.models import load_model, Sequential
+from keras.models import Sequential, load_model
 from sklearn.neighbors import KernelDensity
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from das_anomaly import check_if_anomaly
 from das_anomaly.settings import SETTINGS
-# optional MPI import 
+
+# optional MPI import
 try:
-    from mpi4py import MPI  # noqa: N813  (we want the canonical upper‑case name)
-except ModuleNotFoundError:    
+    from mpi4py import MPI  # (we want the canonical upper-case name)
+except ModuleNotFoundError:
+
     class _DummyComm:
-        """Stand‑in that mimics the tiny subset we use."""
-        def Get_rank(self): return 0
-        def Get_size(self): return 1
-        def bcast(self, obj, root=0): return obj
-    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()   # pragma: no cover
+        """Stand-in that mimics the tiny subset we use."""
+
+        def get_rank(self):
+            return 0
+
+        def get_size(self):
+            return 1
+
+        def bcast(self, obj, root=0):
+            return obj
+
+    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()  # pragma: no cover
+
 
 # ------------------------------------------------------------------ #
 # configuration                                                      #
@@ -87,7 +97,10 @@ class AnomalyDetector:
             if not folder.is_dir():
                 continue
             spectra = sorted(folder.glob("*"))
-            out_file = self.cfg.results_path / f"{folder.name}_output_model_{self.cfg.size}_anomaly.txt"
+            out_file = (
+                self.cfg.results_path
+                / f"{folder.name}_output_model_{self.cfg.size}_anomaly.txt"
+            )
             with out_file.open("w") as fh:
                 for j, img_path in enumerate(spectra):
                     flag = check_if_anomaly(
@@ -105,8 +118,8 @@ class AnomalyDetector:
     def run_parallel(self) -> None:
         """Score PSD PNGs in parallel (one folder per MPI rank)."""
         comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        world_size = comm.Get_size()           
+        rank = comm.get_rank()
+        world_size = comm.get_size()
 
         # Materialise sub-folders once for every rank
         subdirs: list[Path] = [p for p in self.cfg.psd_path.iterdir() if p.is_dir()]
@@ -116,8 +129,8 @@ class AnomalyDetector:
             spectra = sorted(folder_path.glob("*"))
 
             out_file = (
-                self.cfg.results_path /
-                f"{folder_path.name}_output_model_{self.cfg.size}_anomaly.txt"
+                self.cfg.results_path
+                / f"{folder_path.name}_output_model_{self.cfg.size}_anomaly.txt"
             )
 
             with out_file.open("w") as fh:
@@ -133,6 +146,7 @@ class AnomalyDetector:
 
                     if flag.endswith("anomaly"):
                         shutil.copy(img_path, self.dest_dir)
+
     # -------------------------------------------------------------- #
     # internal helpers                                               #
     # -------------------------------------------------------------- #
@@ -155,7 +169,15 @@ class AnomalyDetector:
         """Build a stand-alone encoder and copy weights from the trained model."""
         size = self.cfg.size
         enc = Sequential()
-        enc.add(Conv2D(64, (3, 3), activation="relu", padding="same", input_shape=(size, size, 3)))
+        enc.add(
+            Conv2D(
+                64,
+                (3, 3),
+                activation="relu",
+                padding="same",
+                input_shape=(size, size, 3),
+            )
+        )
         enc.layers[-1].set_weights(self.model.layers[0].get_weights())
 
         enc.add(MaxPooling2D((2, 2), padding="same"))

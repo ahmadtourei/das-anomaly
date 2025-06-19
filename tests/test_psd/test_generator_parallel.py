@@ -1,5 +1,3 @@
-import random
-
 from das_anomaly.psd import PSDGenerator
 
 
@@ -34,12 +32,12 @@ def test_iter_patches_parallel(cfg, patched_plot_psd):
 #     Minimal replacement for mpi4py.MPI that **remembers** the two objects
 #     the root rank (0) sends out via `bcast`:
 
-#         – the list of chunks   (1st call)
-#         – the sampling rate    (2nd call)
+#         - the list of chunks   (1st call)
+#         - the sampling rate    (2nd call)
 
-#     All subsequent non‑root ranks receive the stored objects in the same order.
+#     All subsequent non-root ranks receive the stored objects in the same order.
 #     """
-#     _stored = {}        # class‑level – shared by every instance
+#     _stored = {}        # class-level - shared by every instance
 
 #     def __init__(self, rank: int, size: int):
 #         self._rank = rank
@@ -57,12 +55,12 @@ def test_iter_patches_parallel(cfg, patched_plot_psd):
 #         keys = ("chunks", "sr")
 
 #         if self._rank == root:
-#             # root supplies the objects – remember them
+#             # root supplies the objects - remember them
 #             DummyComm._stored[keys[self._next_key]] = obj
 #             self._next_key ^= 1       # flip 0 ↔ 1
 #             return obj
 
-#         # non‑root: hand back the previously stored object
+#         # non-root: hand back the previously stored object
 #         out = DummyComm._stored[keys[self._next_key]]
 #         self._next_key ^= 1
 #         return out

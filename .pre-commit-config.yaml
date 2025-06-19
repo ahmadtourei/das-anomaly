@@ -1,0 +1,33 @@
+exclude: scripts/_templates
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: check-merge-conflict
+    -   id: mixed-line-ending
+        args: ['--fix=lf']
+
+    # Ruff is a replacement for flake8 and many other linters (much faster too)
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.4.8
+    hooks:
+    -   id: ruff
+        args: ["--fix"]
+        # Run the formatter.
+    -   id: ruff-format
+
+    # ensures __future__ import annotations at top of files which require it
+    # for the typing features they are using.
+-   repo: https://github.com/frostming/fix-future-annotations
+    rev: 0.5.0
+    hooks:
+    -   id: fix-future-annotations
+
+    # strips out all outputs from notebooks.
+-   repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+    -   id: nbstripout

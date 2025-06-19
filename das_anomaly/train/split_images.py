@@ -10,13 +10,14 @@ Example
 >>> cfg = TrainSplitConfig(num_images=400, ratio=0.2)
 >>> ImageSplitter(cfg).run()
 """
+
 from __future__ import annotations
 
 import random
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from das_anomaly.settings import SETTINGS
 
@@ -24,6 +25,7 @@ from das_anomaly.settings import SETTINGS
 @dataclass
 class TrainSplitConfig:
     """Configuration knobs for the PNG train/test splitter."""
+
     # source & destination folders
     psd_dir: Path | str = SETTINGS.PSD_PATH
     train_dir: Path | str = SETTINGS.TRAIN_IMAGES_PATH
@@ -31,9 +33,9 @@ class TrainSplitConfig:
 
     # sampling parameters
     num_images: int = SETTINGS.NUM_IMAGE
-    ratio: float = SETTINGS.RATIO   
+    ratio: float = SETTINGS.RATIO
 
-    rng_seed: int | None = 42       # reproducible splits
+    rng_seed: int | None = 42  # reproducible splits
 
     def __post_init__(self):
         self.psd_dir = Path(self.psd_dir).expanduser()
@@ -56,12 +58,10 @@ class ImageSplitter:
     # public API
     # ------------------------------------------------------------------ #
     def run(self) -> None:
+        """Randomly copy PNGs into train/test dirs according to cfg."""
         train, test = self._pick_files()
         self._copy_all(train, self.cfg.train_dir)
         self._copy_all(test, self.cfg.test_dir)
-
-        print(f"Copied {len(train)} PNGs ➜ {self.cfg.train_dir}")
-        print(f"Copied {len(test)} PNGs ➜ {self.cfg.test_dir}")
 
     # ------------------------------------------------------------------ #
     # helpers

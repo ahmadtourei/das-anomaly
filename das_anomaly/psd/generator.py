@@ -10,24 +10,33 @@ Example
 >>> # parallel processing with multiple processors using MPI:
 >>> PSDGenerator(cfg).run_parallel()
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import dascore as dc
 import numpy as np
-# optional MPI import 
+
+# optional MPI import
 try:
-    from mpi4py import MPI  # noqa: N813  (we want the canonical upper‑case name)
-except ModuleNotFoundError:    
+    from mpi4py import MPI  # (we want the canonical upper-case name)
+except ModuleNotFoundError:
+
     class _DummyComm:
-        """Stand‑in that mimics the tiny subset we use."""
-        def Get_rank(self): return 0
-        def Get_size(self): return 1
-        def bcast(self, obj, root=0): return obj
-    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()   # pragma: no cover
+        """Stand-in that mimics the tiny subset we use."""
+
+        def get_rank(self):
+            return 0
+
+        def get_size(self):
+            return 1
+
+        def bcast(self, obj, root=0):
+            return obj
+
+    MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()  # pragma: no cover
 
 from das_anomaly import plot_spec
 from das_anomaly.settings import SETTINGS
@@ -36,6 +45,7 @@ from das_anomaly.settings import SETTINGS
 @dataclass
 class PSDConfig:
     """All knobs for the PSD workflow (values mirror SETTINGS defaults)."""
+
     data_path: Path | str = SETTINGS.DATA_PATH
     psd_path: Path | str = SETTINGS.PSD_PATH
 
@@ -48,12 +58,14 @@ class PSDConfig:
     dpi: int = SETTINGS.DPI
 
     # time selection (None ➜ no trimming)
-    t1: Optional[np.datetime64] = getattr(SETTINGS, "T_1", None)
-    t2: Optional[np.datetime64] = getattr(SETTINGS, "T_2", None)
+    attr_t1 = getattr(SETTINGS, "T_1", None)
+    attr_t2 = getattr(SETTINGS, "T_2", None)
+    t1: np.datetime64 | None = attr_t1
+    t2: np.datetime64 | None = attr_t2
 
     # derived / overrideable
     min_freq: float = 0.0
-    max_freq_safety_factor: float = 0.9 # 0.9 × Nyquist by default
+    max_freq_safety_factor: float = 0.9  # 0.9 * Nyquist by default
 
     def __post_init__(self):
         self.data_path = Path(self.data_path).expanduser()
@@ -77,7 +89,8 @@ class PSDGenerator:
 
     def run_parallel(self) -> None:
         """Entry point - iterate over patches using MPI and produce PSD plots.
-        Each patch is assigned to one MPI rank (i.e., processor)."""
+        Each patch is assigned to one MPI rank (i.e., processor).
+        """
         for patch in self._iter_patches_parallel():
             self._plot_patch(patch)
 
@@ -95,12 +108,14 @@ class PSDGenerator:
             time=(self.cfg.t1, self.cfg.t2),
             distance=self._distance_slice(patch0),
         )
-        # chunk into windowed sub‑patches
-        sub_sp_chunked = sub_sp.sort("time").chunk(time=self.cfg.time_window, overlap=self.cfg.time_overlap)
+        # chunk into windowed sub-patches
+        sub_sp_chunked = sub_sp.sort("time").chunk(
+            time=self.cfg.time_window, overlap=self.cfg.time_overlap
+        )
         if len(sub_sp_chunked) == 0:
             raise ValueError("No patch of DAS data found within data path: %s")
         # iterate over patches and perform preprocessing
-        for patch in (sub_sp_chunked):
+        for patch in sub_sp_chunked:
             yield (
                 patch.velocity_to_strain_rate_edgeless(
                     step_multiple=self.cfg.step_multiple
@@ -115,16 +130,15 @@ class PSDGenerator:
         Parameters
         ----------
         flag : bool, default ``True``
-            If *True*, each rank prints which patch number they are working on.  
+            If *True*, each rank prints which patch number they are working on.
             Set to *False* to silence these progress messages.
         """
         # Initiate MPI
         comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
+        rank = comm.get_rank()
+        size = comm.get_size()
 
         if rank == 0:
-
             sp = dc.spool(self.cfg.data_path).update()
 
             patch0 = sp[0]
@@ -135,20 +149,22 @@ class PSDGenerator:
                 distance=self._distance_slice(patch0),
             )
 
-            sub_sp_chunked = sub_sp.sort("time").chunk(time=self.cfg.time_window, overlap=self.cfg.time_overlap) 
+            sub_sp_chunked = sub_sp.sort("time").chunk(
+                time=self.cfg.time_window, overlap=self.cfg.time_overlap
+            )
             if len(sub_sp_chunked) == 0:
                 raise ValueError("No patch of DAS data found within data path: %s")
         else:
             sub_sp_chunked = sr = None
-        
+
         # Broadcast the variables to other ranks
         sub_sp_chunked = comm.bcast(sub_sp_chunked, root=0)
         sr = comm.bcast(sr, root=0)
- 
-        # chunk into windowed sub‑patches
+
+        # chunk into windowed sub-patches
         for i in range(rank, len(sub_sp_chunked), size):
             if flag:
-                print(f"Rank {rank} is wroking on patch number: {i}")
+                pass
             patch = sub_sp_chunked[i]
             yield (
                 patch.velocity_to_strain_rate_edgeless(
@@ -170,7 +186,7 @@ class PSDGenerator:
             max_freq,
             sampling_rate,
             title,
-            output_rank=0,                 # keeps MPI + serial use happy
+            output_rank=0,  # keeps MPI + serial use happy
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
         )
@@ -197,10 +213,10 @@ class PSDGenerator:
 
         if dt_seconds == 0:
             raise ValueError("Time step is zero; cannot compute sampling rate.")
-        return int(round(1.0 / dt_seconds))
+        return round(1.0 / dt_seconds)
 
     def _distance_slice(self, patch):
         """Convert channel range to distance range."""
         start = patch.coords["distance"][self.cfg.start_channel]
-        end = patch.coords["distance"][self.cfg.end_channel] 
+        end = patch.coords["distance"][self.cfg.end_channel]
         return (start, end)

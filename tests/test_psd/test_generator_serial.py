@@ -1,13 +1,12 @@
 from das_anomaly.psd import PSDGenerator
 
 
-def test_run_calls_plot_spec(
-    cfg, patched_plot_psd, dummy_patch
-):
+def test_run_calls_plot_spec(cfg, patched_plot_psd, dummy_patch):
     gen = PSDGenerator(cfg)
     gen.run()
 
-    # Should have been called 14 times (len(sub_sp.chunk(time=time_window, overlap=time_overlap)) == 14)
+    # Should have been called 14 times
+    # (len(sub_sp.chunk(time=time_window, overlap=time_overlap)) == 14)
     assert patched_plot_psd.call_count == 14
 
     # Inspect for expected arguments

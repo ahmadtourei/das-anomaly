@@ -3,21 +3,23 @@ Comprehensive tests for das_anomaly.detect.detector in parallel mode
 --------------------------------------------------------------------
 All heavy TF/Keras operations are mocked so the suite runs fast.
 """
+
 from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
-from PIL import Image
 import pytest
+from PIL import Image
 
-from das_anomaly.detect import DetectConfig, AnomalyDetector
+from das_anomaly.detect import AnomalyDetector, DetectConfig
 
 
 # ------------------------------------------------------------------ #
 # helper to fabricate PNGs                                           #
 # ------------------------------------------------------------------ #
 def _make_png(path: Path):
-    arr = (np.random.rand(8, 8, 3) * 255).astype(np.uint8)
+    rng = np.random.default_rng()
+    arr = (rng.random((8, 8, 3)) * 255).astype(np.uint8)
     Image.fromarray(arr).save(path)
 
 
@@ -30,9 +32,14 @@ class _FakeMPIComm:
         self._size = size
 
     # mpi4py interface methods
-    def Get_rank(self): return self._rank
-    def Get_size(self): return self._size
-    def bcast(self, obj, root=0): return obj  # compatibility
+    def get_rank(self):
+        return self._rank
+
+    def get_size(self):
+        return self._size
+
+    def bcast(self, obj, root=0):
+        return obj  # compatibility
 
 
 def _inject_fake_mpi(monkeypatch, rank: int, size: int):
@@ -41,6 +48,7 @@ def _inject_fake_mpi(monkeypatch, rank: int, size: int):
     whose COMM_WORLD behaves like the requested rank/size.
     """
     import das_anomaly.detect.detector as mod
+
     fake = SimpleNamespace(COMM_WORLD=_FakeMPIComm(rank, size))
     monkeypatch.setattr(mod, "MPI", fake)
 
@@ -63,8 +71,9 @@ class TestRunParallelMPI:
         return psd_root, names
 
     @pytest.mark.parametrize("rank", [0, 1])
-    def test_each_rank_handles_its_slice(self, tmp_path, psd_tree,
-                                         patched_tf, monkeypatch, rank):
+    def test_each_rank_handles_its_slice(
+        self, tmp_path, psd_tree, patched_tf, monkeypatch, rank
+    ):
         psd_root, names = psd_tree
         size_world = 2
 
@@ -90,8 +99,10 @@ class TestRunParallelMPI:
         expected = {subdirs[i] for i in range(rank, len(subdirs), size_world)}
 
         # check that corresponding log files were written
-        produced_logs = {p.stem.split("_output_model")[0]
-                         for p in cfg.results_path.glob("*_output_model_*_anomaly.txt")}
+        produced_logs = {
+            p.stem.split("_output_model")[0]
+            for p in cfg.results_path.glob("*_output_model_*_anomaly.txt")
+        }
         assert expected.issubset(produced_logs)
 
         # each PNG flagged as anomaly (score 0.9 < threshold 1000) → copied
