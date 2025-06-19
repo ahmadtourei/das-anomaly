@@ -20,6 +20,8 @@ from das_anomaly.utils import (
     decoder,
     density,
     encoder,
+    ft,
+    get_psd_max_clip,
     plot_spec,
     plot_train_test_loss,
     search_keyword_in_files,
@@ -88,6 +90,13 @@ def dummy_png(tmp_path: Path):
     file_ = tmp_path / "img.png"
     img.save(file_)
     return file_
+
+
+def _dummy_patch():
+    return SimpleNamespace(
+        transpose=lambda *a, **k: SimpleNamespace(data=np.zeros((20, 10))),
+        coords=DummyCoords(),
+    )
 
 
 class TestCheckIfAnomaly:
@@ -176,13 +185,6 @@ class DummyCoords:
         return np.arange(10)
 
 
-def _dummy_patch():
-    return SimpleNamespace(
-        transpose=lambda *a, **k: SimpleNamespace(data=np.zeros((20, 10))),
-        coords=DummyCoords(),
-    )
-
-
 class TestPlotSpec:
     """Input-validation branches in plot_spec"""
 
@@ -225,3 +227,45 @@ class TestPlotTrainTestLoss:
         monkeypatch.setattr(plt, "savefig", lambda p, *a, **k: paths.append(Path(p)))
         plot_train_test_loss(hist, tmp_path)
         assert paths and paths[0].name.startswith("Training_and_validation")
+
+
+class TestGetPsdMaxClip:
+    """Focused checks for Nyquist math and percentile selection."""
+
+    @staticmethod
+    def _patch_like(data: np.ndarray):
+        """Return object exposing .transpose(...).data → *data*."""
+        return SimpleNamespace(transpose=lambda *a, **k: SimpleNamespace(data=data))
+
+    @staticmethod
+    def _monkey_fft(monkeypatch, fake_spectrum: np.ndarray):
+        """Monkey-patch scipy.fftpack.fft inside utils to return *fake_spectrum*."""
+        monkeypatch.setattr(ft, "fft", lambda *_a, **_k: fake_spectrum)
+
+    def test_median_over_selected_bins(self, monkeypatch):
+        """50-th percentile of rows 4-7 equals 5.5 for the synthetic spectrum."""
+        data = np.ones((40, 2))  # dummy Patch data
+        fake_fft = np.tile(np.arange(40)[:, None], (1, 2))  # rows 0..39
+        self._monkey_fft(monkeypatch, fake_fft)
+
+        patch = self._patch_like(data)
+
+        # Nyquist = 500 ⇒ bin width 25 Hz; rows 4–7 correspond to 100–200 Hz
+        clip = get_psd_max_clip(
+            patch, min_freq=100, max_freq=200, sampling_rate=1_000, percentile=50
+        )
+        assert np.isclose(clip, 5.5)  # median of [4,5,6,7]
+
+    def test_custom_percentile(self, monkeypatch):
+        """80-th percentile with different slice/bandwidth is computed correctly."""
+        data = np.ones((20, 3))
+        fake_fft = np.arange(20)[:, None] * np.array([1, 2, 3])
+        self._monkey_fft(monkeypatch, fake_fft)
+
+        patch = self._patch_like(data)
+
+        clip = get_psd_max_clip(
+            patch, min_freq=0, max_freq=125, sampling_rate=500, percentile=80
+        )
+        expected = np.percentile(np.abs(fake_fft[:5]), 80)
+        assert np.isclose(clip, expected)
