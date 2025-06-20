@@ -28,3 +28,4 @@ repos:
     hooks:
       - id: nbstripout
         files: \.ipynb$
+        exclude: '^examples/validate_and_plot_density\.ipynb$' 

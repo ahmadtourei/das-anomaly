@@ -49,6 +49,14 @@ class TestCalculatePercentile:
         """25 % of [1,2,3,4] → 1.75 via linear interpolation."""
         assert np.isclose(calculate_percentile([1, 2, 3, 4], 25), 1.75)
 
+    def test_numpy_input(self):
+        """Test NumPy arrays (incl. empty)."""
+        arr = np.array([10, 20, 30, 40])
+        assert calculate_percentile(arr, 50) == 25  # median of sorted [10,20,30,40]
+
+        empty = np.array([])
+        assert calculate_percentile(empty, 90) is None
+
 
 class TestSearchKeyword:
     """Tests for search_keyword_in_files"""

@@ -2,11 +2,13 @@
 Global configuration for the DAS-anomaly demo pipeline
 ------------------------------------------------------
 
-Do not edit. Edit the config_user.py script instead.
+
+DO NOT EDIT. Edit the config_user.py script instead.
 """
 
-# Path to the data
+# Path to the DAS data (main spool)
 DATA_PATH = "/path/to/the/das/data"
+# Path to the background noise data examples
 BN_DATA_PATH = "/path/to/the/das/background_noise_data"
 # Start and end time for the data spool
 T_1 = "2022-12-01 00:00:00"

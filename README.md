@@ -3,7 +3,7 @@
 [![Licence](https://www.gnu.org/graphics/lgplv3-88x31.png)](https://www.gnu.org/licenses/lgpl.html)
 [![codecov](https://codecov.io/gh/ahmadtourei/das-anomaly/branch/main/graph/badge.svg)](https://codecov.io/gh/ahmadtourei/das-anomaly)
 
-_das-anomaly_ is an open-source Python package for anomaly detection in distributed acoustic sensing (DAS) datasets using an autoencoder-based deep learning algorithm. It is being developed by Ahmad Tourei under the supervision of Dr. Eileen R. Martin at Colorado School of Mines. 
+_das-anomaly_ is an open-source Python package for unsupervised anomaly detection in distributed acoustic sensing (DAS) datasets using an autoencoder-based deep learning algorithm. It is being developed by Ahmad Tourei under the supervision of Dr. Eileen R. Martin at Colorado School of Mines. 
 
 If you use _das-anomaly_ in your work, please cite the following:
 
@@ -48,21 +48,21 @@ from das_anomaly.psd import PSDConfig, PSDGenerator
 from das_anomaly.settings import SETTINGS
 from das_anomaly.utils import get_psd_max_clip
 
+# path to one or a few background noise data 
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
 clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
-Then, use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, we create a spool of DAS data and transform it to strain rate and apply a detrend function. Then, we average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. We create PSDs of anomaly-free images (usually background noise) and known seismic events. We can use MPI to distribute plotting PSDs over CPUs. 
+Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, create a spool of DAS data and transform it to strain rate and apply a detrend function. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
 from das_anomaly.settings import SETTINGS
 
 data_path = SETTINGS.DATA_PATH
-psd_path = SETTINGS.PSD_PATH
-cfg = PSDConfig(data_path=data_path, psd_path=psd_path)
+cfg = PSDConfig(data_path=data_path)
 # serial processing with single processor:
 PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
@@ -76,18 +76,16 @@ from das_anomaly.settings import SETTINGS
 from das_anomaly.train import TrainAEConfig, AutoencoderTrainer, TrainSplitConfig, ImageSplitter
 
 # select and copy train and test datasets from PSD
-num_images = SETTINGS.NUM_IMAGE
-ratio = SETTINGS.RATIO
-cfg = TrainSplitConfig(num_images=num_images, ratio=ratio)
+cfg = TrainSplitConfig()
 ImageSplitter(cfg).run()
 
 # train the autoencoder model
-num_epoch = SETTINGS.NUM_EPOCH
-cfg = TrainAEConfig(num_epoch=num_epoch, ratio=ratio)
+cfg = TrainAEConfig()
 AutoencoderTrainer(cfg).run()
 ```
 5. Test and set a threshold: 
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
+
 6. Run the trained model: 
 The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies.
 ### Example
@@ -95,10 +93,8 @@ The `das_anomaly.detect` module applies the trained model to the data, detects a
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter
 from das_anomaly.detect import DetectConfig, AnomalyDetector
 
-psd_path = SETTINGS.PSD_PATH
-results_path = SETTINGS.RESULTS_PATH
+cfg = DetectConfig()
 # serial processing with single processor:
-cfg = DetectConfig(psd_dir=psd_path, results_path=results_path)
 AnomalyDetector(cfg).run()
 # parallel processing with multiple processors using MPI:
 AnomalyDetector(cfg).run_parallel()
