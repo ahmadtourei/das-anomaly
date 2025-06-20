@@ -21,7 +21,7 @@ def calculate_percentile(data, percentile):
     (equivalent to numpy.percentile with method="linear").
     Empty input ➜ None.
     """
-    if not data:
+    if len(data) == 0:
         return None
 
     if not (0 <= percentile <= 100):
