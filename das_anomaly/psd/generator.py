@@ -4,7 +4,7 @@ Generate Power Spectral Density (PSD) plots from DAS data.
 Example
 -------
 >>> from das_anomaly.psd import PSDConfig, PSDGenerator
->>> cfg = PSDConfig(data_path="~/data", psd_path="~/results/psd")
+>>> cfg = PSDConfig()
 >>> # serial processing with single processor:
 >>> PSDGenerator(cfg).run()
 >>> # parallel processing with multiple processors using MPI:
