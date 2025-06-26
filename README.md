@@ -14,6 +14,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 ### Prerequisites
 - Python >= 3.10
 - `pip`
+
 ### Install Required Dependencies Only
 For clean dependency management, use a virtual environment or a fresh Conda environment.
 To install the package in editable mode with the required dependencies, run the following after cloning the repository and navigating to the repo directory:
@@ -69,7 +70,7 @@ PSDGenerator(cfg).run()
 PSDGenerator(cfg).run_parallel()
 ```
 4. Train: 
-The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model on anomaly-free PSD images. 
+The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py).
 ### Example
 ```python
 from das_anomaly.settings import SETTINGS
@@ -115,7 +116,10 @@ print(f'Total number of detected anomalies: {num}')
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
 
-Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+Dependency notes:
+1. Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+
+2. If you'd like to train the model on GPU, make sure you install TensorFlow with GPU setup in your environment. More information can be found [here](https://www.tensorflow.org/install/pip#:~:text=4.-,Install%20TensorFlow,-TensorFlow%20requires%20a).
 
 ## Note
 Still under development. Use with caution.

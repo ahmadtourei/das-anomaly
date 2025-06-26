@@ -65,7 +65,7 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     return out
 
 
-def decoder(model):
+def decoder(model: Sequential) -> Sequential:
     """Imports decoder model."""
     model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
@@ -74,7 +74,8 @@ def decoder(model):
     model.add(Conv2D(64, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
 
-    return model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+    model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+    return model
 
 
 def density(encoder_model, batch_images, kde):
