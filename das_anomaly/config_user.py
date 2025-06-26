@@ -6,6 +6,8 @@ Only edit this file to define every pre-processing, PSD plotting, and
 autoencoder training hyper-parameters parameters as well as the right data locations.
 """
 
+# Data unit - should be either velocity or strain_rate
+DATA_UNIT = "velocity"
 # Path to the DAS data (main spool)
 DATA_PATH = "./path/to/the/das/data"
 # Path to the background noise data examples

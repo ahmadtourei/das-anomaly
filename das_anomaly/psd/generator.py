@@ -50,6 +50,7 @@ from das_anomaly.settings import SETTINGS
 class PSDConfig:
     """All knobs for the PSD workflow (values mirror SETTINGS defaults)."""
 
+    data_unit: Path | str = SETTINGS.DATA_UNIT
     data_path: Path | str = SETTINGS.DATA_PATH
     psd_path: Path | str = SETTINGS.PSD_PATH
 
@@ -134,12 +135,23 @@ class PSDGenerator:
             raise ValueError("No patch of DAS data found within data path: %s")
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
-            yield (
-                patch.velocity_to_strain_rate_edgeless(
-                    step_multiple=self.cfg.step_multiple
-                ).detrend("time"),
-                sr,
-            )
+            if self.cfg.data_unit == "valocity":
+                yield (
+                    patch.velocity_to_strain_rate_edgeless(
+                        step_multiple=self.cfg.step_multiple
+                    ).detrend("time"),
+                    sr,
+                )
+            elif self.cfg.data_unit == "strain_rate":
+                yield (
+                    patch.detrend("time"),
+                    sr,
+                )
+            else:
+                raise ValueError(
+                    "Unsupported data_unit: {data_unit!r}. "
+                    "Expected 'velocity' or 'strain_rate'."
+                )
 
     def _iter_patches_parallel(self, flag: bool = True):
         """

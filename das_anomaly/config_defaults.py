@@ -6,6 +6,8 @@ Global configuration for the DAS-anomaly demo pipeline
 DO NOT EDIT. Edit the config_user.py script instead.
 """
 
+# Data unit - should be either velocity or strain_rate
+DATA_UNIT = "velocity"
 # Path to the DAS data (main spool)
 DATA_PATH = "/path/to/the/das/data"
 # Path to the background noise data examples
