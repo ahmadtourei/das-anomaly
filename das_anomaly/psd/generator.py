@@ -135,7 +135,7 @@ class PSDGenerator:
             raise ValueError("No patch of DAS data found within data path: %s")
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
-            if self.cfg.data_unit == "valocity":
+            if self.cfg.data_unit == "velocity":
                 yield (
                     patch.velocity_to_strain_rate_edgeless(
                         step_multiple=self.cfg.step_multiple
