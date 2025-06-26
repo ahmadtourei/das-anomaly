@@ -56,7 +56,7 @@ clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
-Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, create a spool of DAS data and transform it to strain rate and apply a detrend function. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
+Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format and in plain mode (no axes or colorbar). First, create a spool of DAS data and apply a detrend function to each patch. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
