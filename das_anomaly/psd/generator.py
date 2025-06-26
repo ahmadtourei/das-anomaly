@@ -22,7 +22,7 @@ import numpy as np
 # optional MPI import
 try:
     from mpi4py import MPI  # (we want the canonical upper-case name)
-except ModuleNotFoundError:
+except:
 
     class _DummyComm:
         """Stand-in that mimics the tiny subset we use."""
@@ -37,6 +37,10 @@ except ModuleNotFoundError:
             return obj
 
     MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()  # pragma: no cover
+    print(
+        "mpi4py not available - A fake MPI communicator is assigned. "
+        "Install mpi4py and run your script under `mpirun` for parallel execution."
+    )
 
 from das_anomaly import get_psd_max_clip, plot_spec
 from das_anomaly.settings import SETTINGS

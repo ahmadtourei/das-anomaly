@@ -60,10 +60,8 @@ Use the `das_anomaly.psd` module and create power spectral density (PSD) plots i
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
-from das_anomaly.settings import SETTINGS
 
-data_path = SETTINGS.DATA_PATH
-cfg = PSDConfig(data_path=data_path)
+cfg = PSDConfig()
 # serial processing with single processor:
 PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
