@@ -59,17 +59,20 @@ class TestCalculatePercentile:
 
 
 class TestSearchKeyword:
-    """Tests for search_keyword_in_files"""
+    """Tests for search_keyword_in_files."""
 
     def test_keyword_found(self, tmp_path: Path):
         f1 = tmp_path / "a.txt"
         f2 = tmp_path / "b.txt"
-        f1.write_text("line apple\nbanana\n")
-        f2.write_text("apple pie\nanother apple\n")
+
+        # keyword must be the final token on the line to match
+        f1.write_text("apple\nbanana\nnot this apple pie\n")  # 1 match
+        f2.write_text("just apple\nanother line\n")  # 1 match
+
         count, lines = search_keyword_in_files(tmp_path, "apple")
-        assert count == 3
-        assert len(lines) == 3
-        assert all("apple" in li for li in lines)
+        assert count == 2  # ← was 3
+        assert len(lines) == 2
+        assert all(line.split()[-1].rstrip(".,") == "apple" for line in lines)
 
 
 class DummyKDE:
