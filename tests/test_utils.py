@@ -220,8 +220,7 @@ class TestPlotSpec:
         max_freq = 50
         with pytest.raises(
             ValueError,
-            match=f"`min_freq` {min_freq} must be less than or "
-            f"equal to `max_freq` {max_freq}",
+            match=f"`min_freq` {min_freq} must be less than " f"`max_freq` {max_freq}",
         ):
             plot_spec(_dummy_patch(), min_freq, max_freq, 1000, "t", 0, tmp_path, 72)
 

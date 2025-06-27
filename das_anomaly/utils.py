@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fftpack as ft
+from matplotlib import gridspec
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
@@ -153,6 +154,7 @@ def plot_spec(
     output_rank,
     fig_path,
     dpi,
+    hide_axes=True,
 ):
     """Save the power spectral density (Channel-Frequency-Amplitude) plot."""
     # Get the data
@@ -164,13 +166,12 @@ def plot_spec(
     # Check for valid inputs (note - these checks aren't exhaustive)
     if max_freq <= min_freq:
         raise ValueError(
-            f"`min_freq` {min_freq} must be less than "
-            f"or equal to `max_freq` {max_freq}."
+            f"`min_freq` {min_freq} must be less than " f"`max_freq` {max_freq}."
         )
     # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
-    spect = ft.fft(strain_rate, axis=0)
-    n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
-    amplitude_spec = np.absolute(spect[:n_frq_bins, :])
+    spect = ft.rfft(strain_rate, axis=0)
+    n_frq_bins = spect.shape[0]  # number of frequency bins
+    amplitude_spec = np.absolute(spect)
     # Calculate indices corresponding to the frequencies of interest
     nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
     # Make sure maxFrq doesn't exceed Nyquist frequency
@@ -184,10 +185,8 @@ def plot_spec(
     min_frq_idx = int(min_freq / hz_per_bin)
     max_frq_idx = int(max_freq / hz_per_bin)
     # Plot
-    _, ax = plt.subplots(figsize=(12, 12))
     clip_val_max = SETTINGS.CLIP_VALUE_MAX  # pragma: no cover
     clip_val_min = 0
-    # Define the colors in RGB
     colors = [
         (1, 0, 0),  # Red
         (0, 1, 0),  # Green
@@ -197,20 +196,76 @@ def plot_spec(
     n_bins = 100  # Increase for smoother transitions
     cmap_name = "rgb_custom_cmap"
     cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-    _ = ax.imshow(
-        amplitude_spec[min_frq_idx:max_frq_idx, :],
-        aspect="auto",
-        interpolation="none",
-        cmap=cm,
-        extent=(dist_min, dist_max, max_freq, min_freq),
-        vmin=clip_val_min,
-        vmax=clip_val_max,
-    )
-    # Hide the axes
-    ax.axis("off")  # pragma: no cover
-    # Hide the ticks
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if hide_axes:
+        _, ax = plt.subplots(figsize=(12, 12))
+        # Define the colors in RGB
+        _ = ax.imshow(
+            amplitude_spec[min_frq_idx:max_frq_idx, :],
+            aspect="auto",
+            interpolation="none",
+            cmap=cm,
+            extent=(dist_min, dist_max, max_freq, min_freq),
+            vmin=clip_val_min,
+            vmax=clip_val_max,
+        )
+        # Hide the axes
+        ax.axis("off")  # pragma: no cover
+        # Hide the ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        fig = plt.figure(figsize=(14, 12))
+        spec = gridspec.GridSpec(ncols=2, nrows=1, width_ratios=[12, 1], figure=fig)
+
+        # Create main axis for imshow with exact 12x12 aspect
+        ax = fig.add_subplot(spec[0])
+        img = ax.imshow(
+            amplitude_spec[min_frq_idx:max_frq_idx, :],
+            aspect="auto",
+            interpolation="none",
+            cmap=cm,
+            extent=(dist_min, dist_max, max_freq, min_freq),
+            vmin=clip_val_min,
+            vmax=clip_val_max,
+        )
+
+        # Format main plot
+        ax.set_xlabel("Distance (m)", fontsize=20)
+        ax.set_ylabel("Frequency (Hz)", fontsize=20)
+
+        # Increase tick label size and thickness
+        ax.tick_params(axis="both", which="major", labelsize=18, width=2.5, length=8)
+        ax.tick_params(axis="both", which="minor", labelsize=16, width=2, length=5)
+
+        # Increase thickness of axis lines
+        for spine in ax.spines.values():
+            spine.set_linewidth(2.5)
+
+        # Create a separate axis for colorbar to keep imshow part exactly 12x12
+        cbar_ax = fig.add_subplot(spec[1])
+        cbar = plt.colorbar(img, cax=cbar_ax)
+        cbar.set_label("Amplitude", fontsize=18)
+        cbar.ax.tick_params(labelsize=16)
+        # Ensure colorbar offset text (if using scientific notation) is also large
+        cbar.formatter.set_powerlimits((-2, 2))  # Force scientific notation if needed
+        cbar.ax.yaxis.get_offset_text().set_fontsize(
+            16
+        )  # Correct way to set offset text size
+        # Add large axis titles
+        ax.set_xlabel("Distance (m)", fontsize=32)
+        ax.set_ylabel("Frequency (Hz)", fontsize=32)
+
+        # Increase tick label size and thickness
+        ax.tick_params(axis="both", which="major", labelsize=28, width=2.5, length=8)
+        ax.tick_params(axis="both", which="minor", labelsize=28, width=2, length=5)
+
+        # Increase thickness of axis lines
+        ax.spines["top"].set_linewidth(2.5)
+        ax.spines["bottom"].set_linewidth(2.5)
+        ax.spines["left"].set_linewidth(2.5)
+        ax.spines["right"].set_linewidth(2.5)
+
+    # save figure
     fig_path_ranks = os.path.join(fig_path, "rank_" + str(output_rank))
     # Check if the directory does not exist
     if not os.path.exists(fig_path_ranks):

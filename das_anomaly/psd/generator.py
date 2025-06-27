@@ -72,6 +72,8 @@ class PSDConfig:
     min_freq: float = SETTINGS.MIN_FREQ
     max_freq: float = SETTINGS.MAX_FREQ
 
+    hide_axes: bool = True
+
     def __post_init__(self):
         self.data_path = Path(self.data_path).expanduser()
         self.psd_path = Path(self.psd_path).expanduser()
@@ -218,6 +220,7 @@ class PSDGenerator:
             output_rank=0,  # keeps MPI + serial use happy
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
+            hide_axes=self.cfg.hide_axes,
         )
 
     def _get_max_clip(self, patch_sr_tuple):

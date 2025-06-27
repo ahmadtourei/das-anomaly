@@ -67,6 +67,17 @@ PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
 PSDGenerator(cfg).run_parallel()
 ```
+Note: If you'd like to use PSDs for purposes other than training, the `hide_axes=False` will plot the PSD with axes and colorbar (default is True).
+### Example
+```python
+from das_anomaly.psd import PSDConfig, PSDGenerator
+
+cfg = PSDConfig(hide_axes=False)
+# serial processing with single processor:
+PSDGenerator(cfg).run()
+# parallel processing with multiple processors using MPI:
+PSDGenerator(cfg).run_parallel()
+```
 4. Train: 
 The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py).
 ### Example
