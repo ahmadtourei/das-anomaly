@@ -61,6 +61,7 @@ class DetectConfig:
     # directories -----------------------------------------------------
     psd_path: Path | str = SETTINGS.PSD_PATH
     results_path: Path | str = SETTINGS.RESULTS_PATH
+    trained_path: Path | str = SETTINGS.TRAINED_PATH
     train_images_path: Path | str = SETTINGS.TRAIN_IMAGES_PATH
 
     # model / data params --------------------------------------------
@@ -72,6 +73,7 @@ class DetectConfig:
         # expand paths
         self.psd_path = Path(self.psd_path).expanduser()
         self.results_path = Path(self.results_path).expanduser()
+        self.trained_path = Path(self.trained_path).expanduser()
         self.train_images_path = Path(self.train_images_path).expanduser()
 
         self.results_path.mkdir(parents=True, exist_ok=True)
@@ -155,7 +157,7 @@ class AnomalyDetector:
     # internal helpers                                               #
     # -------------------------------------------------------------- #
     def _load_model(self):
-        model_path = self.cfg.results_path / f"model_{self.cfg.size}.h5"
+        model_path = self.cfg.trained_path / f"model_{self.cfg.size}.h5"
         if not model_path.exists():
             raise FileNotFoundError(model_path)
         return load_model(model_path)
