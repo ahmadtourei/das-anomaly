@@ -9,6 +9,10 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+include = ["das_anomaly*"]     # everything under das_anomaly/
+exclude = ["data*"]            # ignore the data folder
+
 [tool.setuptools-git-versioning]
 enabled = true
 
@@ -76,7 +80,6 @@ all = [
 "Homepage" = "https://github.com/ahmadtourei/das-anomaly" 
 
 # --- External tool configuration
-
 
 [tool.ruff]
 line-length = 88
