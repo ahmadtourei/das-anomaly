@@ -97,7 +97,7 @@ AutoencoderTrainer(cfg).run()
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
 
 6. Run the trained model: 
-The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies.
+The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and their information.
 ### Example
 ```python
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter
@@ -111,9 +111,7 @@ AnomalyDetector(cfg).run_parallel()
 
 # count number of anomalies
 cfg = CounterConfig(keyword="anomaly")
-total = AnomalyCounter(cfg).run()
-num = len(total)
-print(f'Total number of detected anomalies: {num}')
+AnomalyCounter(cfg).run() # prints info on number of anomalies and path to them
 ```
 
 ## Package's Dependencies

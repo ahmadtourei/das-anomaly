@@ -2,7 +2,10 @@
 Utility functions for anomaly detection in DAS datasets using autoencoders.
 """
 
+from __future__ import annotations
+
 import os
+import string
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -293,19 +296,23 @@ def plot_train_test_loss(history, path):
 def search_keyword_in_files(directory, keyword):
     """Function to search for a keyword in all text results within a directory"""
     keyword_count = 0
-    lines_with_keyword = []
+    matching_lines: list[str] = []
+    trailing_punct = str.maketrans("", "", string.punctuation)
 
-    # Walk through all files in the specified directory
-    for root, _, files in os.walk(directory):
-        for file in files:
-            # Check if the file is a text file
-            if file.endswith(".txt"):
-                file_path = os.path.join(root, file)
-                with open(file_path, encoding="utf-8") as f:
-                    for line in f:
-                        if keyword in line:
-                            keyword_count += line.count(keyword)
-                            # Strip removes leading/trailing whitespace
-                            lines_with_keyword.append(line.strip())
+    # iterate over files in the first level only
+    for file_path in directory.iterdir():
+        if file_path.suffix != ".txt" or not file_path.is_file():
+            continue
 
-    return keyword_count, lines_with_keyword
+        with file_path.open(encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.rstrip()
+                if not line:
+                    continue
+
+                last_token = line.split()[-1].translate(trailing_punct)
+                if last_token == keyword:
+                    keyword_count += 1
+                    matching_lines.append(line)
+
+    return keyword_count, matching_lines

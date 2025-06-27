@@ -85,7 +85,7 @@ class TestRunParallelMPI:
             density_threshold=1_000,
             size=8,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
         # swap real MPI with our stub for this rank
         _inject_fake_mpi(monkeypatch, rank, size_world)
