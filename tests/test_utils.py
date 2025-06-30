@@ -227,6 +227,34 @@ class TestPlotSpec:
         ):
             plot_spec(_dummy_patch(), min_freq, max_freq, 1000, "t", 0, tmp_path, 72)
 
+    def test_full_axes_branch(self, tmp_path: Path, dummy_patch, monkeypatch):
+        # Collect the path that would be written
+        saved: list[Path] = []
+
+        def fake_savefig(fname, *_, **__):
+            saved.append(Path(fname))
+
+        monkeypatch.setattr(plt, "savefig", fake_savefig)
+
+        # Call the function under test – should not raise
+        plot_spec(
+            dummy_patch,
+            min_freq=0,
+            max_freq=40,
+            sampling_rate=100,
+            title="demo",
+            output_rank=0,
+            fig_path=tmp_path,
+            dpi=72,
+            hide_axes=False,
+        )
+
+        # A PNG path should have been “saved”
+        assert saved, "plt.savefig was never invoked"
+        assert saved[0].suffix == ".png"
+        # Confirm the figure lives inside rank_0 subfolder
+        assert saved[0].parent.name == "rank_0"
+
 
 class TestPlotTrainTestLoss:
     """Intercept savefig and ensure a PNG would be written."""
