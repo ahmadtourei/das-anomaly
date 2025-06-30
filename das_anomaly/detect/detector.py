@@ -19,9 +19,10 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from keras.models import Sequential, load_model
+from keras.models import load_model
 from sklearn.neighbors import KernelDensity
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from das_anomaly import check_if_anomaly
