@@ -9,9 +9,9 @@ autoencoder training hyper-parameters parameters as well as the right data locat
 # Data unit - should be either velocity or strain_rate
 DATA_UNIT = "velocity"
 # Path to the DAS data (main spool)
-DATA_PATH = "./path/to/the/das/data"
+DATA_PATH = "/path/to/the/das/data"
 # Path to the background noise data examples
-BN_DATA_PATH = "./path/to/the/das/background_noise_data"
+BN_DATA_PATH = "/path/to/the/das/background_noise_data"
 # Start and end time for the data spool
 T_1 = "2023-01-23 00:00:00"
 T_2 = "2023-02-00 00:00:00"
@@ -39,16 +39,16 @@ TIME_OVERLAP = 1  # sec.
 DPI = 300  # saved image quality
 
 # Define the path to power spectral density (PSD) plots
-PSD_PATH = "./path/to/PSD/plots"
+PSD_PATH = "/path/to/PSD/plots"
 
 # Define number of train+test and the ratio of the test to train
 NUM_IMAGE = 1000
 RATIO = 0.2
 
 # Define the directory path for training, testing, and known anomalous PSD images
-TRAIN_IMAGES_PATH = "./data/training_dataset/"
-TEST_IMAGES_PATH = "./data/training_dataset/"
-ANOMALY_IMAGES_PATH = "./data/anomalous_dataset/"
+TRAIN_IMAGES_PATH = "/data/training_dataset/"
+TEST_IMAGES_PATH = "/data/training_dataset/"
+ANOMALY_IMAGES_PATH = "/data/anomalous_dataset/"
 
 # Number of epochs for training
 NUM_EPOCH = 250
@@ -57,4 +57,4 @@ NUM_EPOCH = 250
 TRAINED_PATH = "./data/"
 
 # Define the path to the detected anomalies results
-RESULTS_PATH = "./path/to/saved/results/from/detect_anomalies/"
+RESULTS_PATH = "/path/to/saved/results/from/detect_anomalies/"

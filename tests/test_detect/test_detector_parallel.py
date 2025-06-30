@@ -82,6 +82,7 @@ class TestRunParallelMPI:
             psd_path=psd_root,
             results_path=tmp_path / "out",
             train_images_path=tmp_path,
+            trained_path=tmp_path,
             density_threshold=1_000,
             size=8,
         )
