@@ -3,7 +3,6 @@ __pycache__/
 .pytest_cache/
 *.py[cod]
 *$py.class
-path/
 data/
 
 # Distribution / packaging
