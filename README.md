@@ -14,6 +14,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 ### Prerequisites
 - Python >= 3.10
 - `pip`
+
 ### Install Required Dependencies Only
 For clean dependency management, use a virtual environment or a fresh Conda environment.
 To install the package in editable mode with the required dependencies, run the following after cloning the repository and navigating to the repo directory:
@@ -55,21 +56,30 @@ clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
-Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format. First, create a spool of DAS data and transform it to strain rate and apply a detrend function. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
+Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format and in plain mode (no axes or colorbar). First, create a spool of DAS data and apply a detrend function to each patch. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
-from das_anomaly.settings import SETTINGS
 
-data_path = SETTINGS.DATA_PATH
-cfg = PSDConfig(data_path=data_path)
+cfg = PSDConfig()
+# serial processing with single processor:
+PSDGenerator(cfg).run()
+# parallel processing with multiple processors using MPI:
+PSDGenerator(cfg).run_parallel()
+```
+Note: If you'd like to use PSDs for purposes other than training, the `hide_axes=False` will plot the PSD with axes and colorbar (default is True).
+### Example
+```python
+from das_anomaly.psd import PSDConfig, PSDGenerator
+
+cfg = PSDConfig(hide_axes=False)
 # serial processing with single processor:
 PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
 PSDGenerator(cfg).run_parallel()
 ```
 4. Train: 
-The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model on anomaly-free PSD images. 
+The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py).
 ### Example
 ```python
 from das_anomaly.settings import SETTINGS
@@ -87,7 +97,7 @@ AutoencoderTrainer(cfg).run()
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
 
 6. Run the trained model: 
-The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies.
+The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and their information.
 ### Example
 ```python
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter
@@ -101,9 +111,7 @@ AnomalyDetector(cfg).run_parallel()
 
 # count number of anomalies
 cfg = CounterConfig(keyword="anomaly")
-total = AnomalyCounter(cfg).run()
-num = len(total)
-print(f'Total number of detected anomalies: {num}')
+AnomalyCounter(cfg).run() # prints info on number of anomalies and path to them
 ```
 
 ## Package's Dependencies
@@ -115,7 +123,10 @@ print(f'Total number of detected anomalies: {num}')
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
 
-Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+Dependency notes:
+1. Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+
+2. If you'd like to train the model on GPU, make sure you install TensorFlow with GPU setup in your environment. More information can be found [here](https://www.tensorflow.org/install/pip#:~:text=4.-,Install%20TensorFlow,-TensorFlow%20requires%20a).
 
 ## Note
 Still under development. Use with caution.

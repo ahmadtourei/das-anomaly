@@ -6,6 +6,8 @@ Global configuration for the DAS-anomaly demo pipeline
 DO NOT EDIT. Edit the config_user.py script instead.
 """
 
+# Data unit - should be either velocity or strain_rate
+DATA_UNIT = "velocity"
 # Path to the DAS data (main spool)
 DATA_PATH = "/path/to/the/das/data"
 # Path to the background noise data examples
@@ -29,9 +31,9 @@ CLIP_VALUE_MAX = 1e-6
 # Set parameters for preprocessing the data
 MIN_FREQ = 0
 MAX_FREQ = 250
-STEP_MULTIPLE = 2  # gauge length to channel spacing ratio
-START_CHANNEL = 0
-END_CHANNEL = 800
+STEP_MULTIPLE = 2  # gauge length to channel spacing ratio - ignore if data is in strain rate already
+START_CHANNEL = 0  # channel number
+END_CHANNEL = 800  # channel number
 TIME_WINDOW = 2  # sec.
 TIME_OVERLAP = 1  # sec.
 DPI = 300  # saved image quality
@@ -56,4 +58,3 @@ TRAINED_PATH = "/path/to/saved/results/trained/model/"
 
 # Define the path to the detected anomalies results
 RESULTS_PATH = "/path/to/saved/results/from/detect_anomalies/"
-RESULTS_FOLDER_NAME = "results_folder"

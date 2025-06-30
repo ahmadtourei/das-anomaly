@@ -60,6 +60,14 @@ class ImageSplitter:
     def run(self) -> None:
         """Randomly copy PNGs into train/test dirs according to cfg."""
         train, test = self._pick_files()
+
+        # make …/images/ sub-dirs once
+        train_img_dir = (self.cfg.train_dir / "images").resolve()
+        test_img_dir = (self.cfg.test_dir / "images").resolve()
+        train_img_dir.mkdir(parents=True, exist_ok=True)
+        test_img_dir.mkdir(parents=True, exist_ok=True)
+
+        # copy
         self._copy_all(train, self.cfg.train_dir)
         self._copy_all(test, self.cfg.test_dir)
 

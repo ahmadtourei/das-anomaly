@@ -82,10 +82,11 @@ class TestRunParallelMPI:
             psd_path=psd_root,
             results_path=tmp_path / "out",
             train_images_path=tmp_path,
+            trained_path=tmp_path,
             density_threshold=1_000,
             size=8,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
         # swap real MPI with our stub for this rank
         _inject_fake_mpi(monkeypatch, rank, size_world)

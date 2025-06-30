@@ -1,6 +1,8 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from das_anomaly.psd import PSDConfig, PSDGenerator
 
@@ -64,3 +66,85 @@ class TestRunGetPsdVal:
         mean_val = gen.run_get_psd_val()
         assert np.isnan(mean_val)
         assert "hit" not in called  # function never invoked
+
+
+"""
+Tests for the `data_unit` switch inside PSDGenerator._iter_patches.
+"""
+# ------------------------------------------------------------------ #
+# helpers to fabricate a minimal Patch + Spool                       #
+# ------------------------------------------------------------------ #
+
+
+def _fake_sp(patch):
+    """Return a minimal object with the methods PSDGenerator expects."""
+
+    class FakeSpool(list):
+        def update(self):
+            return self
+
+        def select(self, **_):
+            return self
+
+        def sort(self, *_, **__):
+            return self
+
+        def chunk(self, **_):
+            return self
+
+    return FakeSpool([patch])
+
+
+# ------------------------------------------------------------------ #
+# tests                                                              #
+# ------------------------------------------------------------------ #
+class TestRunGetPsdVal:
+    @pytest.mark.parametrize(
+        "unit,conv_calls,det_calls",
+        [
+            ("velocity", 1, 1),  # conversion + detrend
+            ("strain_rate", 0, 1),  # detrend only
+        ],
+    )
+    def test_iter_patches_respects_data_unit(
+        self, unit, conv_calls, det_calls, dummy_patch, monkeypatch, tmp_path: Path
+    ):
+        """_iter_patches branches correctly for 'velocity' vs 'strain_rate'."""
+        # --- wire a fake spool so no disk access happens ----------------
+        monkeypatch.setattr(
+            "das_anomaly.psd.generator.dc.spool",
+            lambda *_: _fake_sp(dummy_patch),
+        )
+
+        # stub helpers not under test
+        monkeypatch.setattr(PSDGenerator, "_distance_slice", lambda *_: (0, 1))
+        monkeypatch.setattr(PSDGenerator, "_sampling_rate", lambda *_: 1000)
+
+        # spy counters ---------------------------------------------------
+        counters = {"conv": 0, "det": 0}
+
+        def fake_conv(self, *_, **__):
+            counters["conv"] += 1
+            return self
+
+        def fake_det(self, *_, **__):
+            counters["det"] += 1
+            return self
+
+        monkeypatch.setattr(
+            dummy_patch,
+            "velocity_to_strain_rate_edgeless",
+            fake_conv.__get__(dummy_patch),
+        )
+        monkeypatch.setattr(
+            dummy_patch, "detrend", fake_det.__get__(dummy_patch, SimpleNamespace)
+        )
+
+        # --- run --------------------------------------------------------
+        cfg = PSDConfig(data_path=tmp_path, psd_path=tmp_path, data_unit=unit)
+
+        list(PSDGenerator(cfg)._iter_patches())  # exhaust generator
+
+        # --- assertions -------------------------------------------------
+        assert counters["conv"] == conv_calls
+        assert counters["det"] == det_calls

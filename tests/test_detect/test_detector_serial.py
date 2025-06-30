@@ -26,7 +26,10 @@ class TestInit:
 
     def test_missing_model_raises(self, tmp_path):
         cfg = DetectConfig(
-            psd_path=tmp_path, results_path=tmp_path, train_images_path=tmp_path
+            psd_path=tmp_path / "psd",
+            results_path=tmp_path / "out",
+            train_images_path=tmp_path,
+            trained_path=tmp_path,
         )
         with pytest.raises(FileNotFoundError):
             AnomalyDetector(cfg)
@@ -37,9 +40,12 @@ class TestEncoderExtraction:
 
     def test_weights_set(self, tmp_path, patched_tf):
         cfg = DetectConfig(
-            psd_path=tmp_path, results_path=tmp_path, train_images_path=tmp_path
+            psd_path=tmp_path / "psd",
+            results_path=tmp_path / "out",
+            train_images_path=tmp_path,
+            trained_path=tmp_path,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
         _ = AnomalyDetector(cfg)
         conv_layers = [
@@ -55,9 +61,12 @@ class TestKDEFitting:
 
     def test_fit_vector_shape(self, tmp_path, patched_tf):
         cfg = DetectConfig(
-            psd_path=tmp_path, results_path=tmp_path, train_images_path=tmp_path
+            psd_path=tmp_path / "psd",
+            results_path=tmp_path / "out",
+            train_images_path=tmp_path,
+            trained_path=tmp_path,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
         _ = AnomalyDetector(cfg)
         assert patched_tf["kde_fit_called"]["shape"] == (4, 16)  # 4 imgs * 16 dims
 
@@ -76,10 +85,12 @@ class TestRunEndToEnd:
             psd_path=tmp_path / "psd",
             results_path=tmp_path / "out",
             train_images_path=tmp_path,
+            trained_path=tmp_path,
             density_threshold=1_000,
             size=8,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
         det = AnomalyDetector(cfg)
         det.run()
@@ -103,6 +114,7 @@ class TestCLI:
                 "psd_path": str(tmp_path / "psd"),
                 "results_path": str(tmp_path / "out"),
                 "train_images_path": str(tmp_path),
+                "trained_path": str(tmp_path),
                 "size": 8,
                 "density_threshold": 1,
             },
@@ -111,7 +123,7 @@ class TestCLI:
 
         # touch dummy model
         (tmp_path / "out").mkdir(exist_ok=True, parents=True)
-        (tmp_path / "out" / "model_8.h5").touch()
+        (tmp_path / "model_8.h5").touch()
 
         monkeypatch.setattr(sys, "argv", ["detect-anomaly", "--config", str(cfg_file)])
         monkeypatch.setattr(AnomalyDetector, "run", lambda self: print("CLI OK"))  # noqa: T201
@@ -167,10 +179,11 @@ class TestRunSkipsNonDirs:
             psd_path=psd_root,
             results_path=tmp_path / "out",
             train_images_path=tmp_path,
+            trained_path=tmp_path,
             size=8,
             density_threshold=1_000,
         )
-        (cfg.results_path / f"model_{cfg.size}.h5").touch()
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
         AnomalyDetector(cfg).run()
 

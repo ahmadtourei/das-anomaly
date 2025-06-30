@@ -2,11 +2,15 @@
 Utility functions for anomaly detection in DAS datasets using autoencoders.
 """
 
+from __future__ import annotations
+
 import os
+import string
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fftpack as ft
+from matplotlib import gridspec
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D
@@ -65,7 +69,7 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     return out
 
 
-def decoder(model):
+def decoder(model: Sequential) -> Sequential:
     """Imports decoder model."""
     model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
@@ -74,7 +78,8 @@ def decoder(model):
     model.add(Conv2D(64, (3, 3), activation="relu", padding="same"))
     model.add(UpSampling2D((2, 2)))
 
-    return model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+    model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+    return model
 
 
 def density(encoder_model, batch_images, kde):
@@ -152,6 +157,7 @@ def plot_spec(
     output_rank,
     fig_path,
     dpi,
+    hide_axes=True,
 ):
     """Save the power spectral density (Channel-Frequency-Amplitude) plot."""
     # Get the data
@@ -163,13 +169,12 @@ def plot_spec(
     # Check for valid inputs (note - these checks aren't exhaustive)
     if max_freq <= min_freq:
         raise ValueError(
-            f"`min_freq` {min_freq} must be less than "
-            f"or equal to `max_freq` {max_freq}."
+            f"`min_freq` {min_freq} must be less than " f"`max_freq` {max_freq}."
         )
     # Calculate the amplitude spectrum (not amplitude symmetry for +/- frequencies)
-    spect = ft.fft(strain_rate, axis=0)
-    n_frq_bins = int(spect.shape[0] / 2)  # number of frequency bins
-    amplitude_spec = np.absolute(spect[:n_frq_bins, :])
+    spect = ft.rfft(strain_rate, axis=0)
+    n_frq_bins = spect.shape[0]  # number of frequency bins
+    amplitude_spec = np.absolute(spect)
     # Calculate indices corresponding to the frequencies of interest
     nyquist_frq = sampling_rate / 2.0  # the Nyquist frequency
     # Make sure maxFrq doesn't exceed Nyquist frequency
@@ -183,10 +188,8 @@ def plot_spec(
     min_frq_idx = int(min_freq / hz_per_bin)
     max_frq_idx = int(max_freq / hz_per_bin)
     # Plot
-    _, ax = plt.subplots(figsize=(12, 12))
     clip_val_max = SETTINGS.CLIP_VALUE_MAX  # pragma: no cover
     clip_val_min = 0
-    # Define the colors in RGB
     colors = [
         (1, 0, 0),  # Red
         (0, 1, 0),  # Green
@@ -196,20 +199,76 @@ def plot_spec(
     n_bins = 100  # Increase for smoother transitions
     cmap_name = "rgb_custom_cmap"
     cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-    _ = ax.imshow(
-        amplitude_spec[min_frq_idx:max_frq_idx, :],
-        aspect="auto",
-        interpolation="none",
-        cmap=cm,
-        extent=(dist_min, dist_max, max_freq, min_freq),
-        vmin=clip_val_min,
-        vmax=clip_val_max,
-    )
-    # Hide the axes
-    ax.axis("off")  # pragma: no cover
-    # Hide the ticks
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if hide_axes:
+        _, ax = plt.subplots(figsize=(12, 12))
+        # Define the colors in RGB
+        _ = ax.imshow(
+            amplitude_spec[min_frq_idx:max_frq_idx, :],
+            aspect="auto",
+            interpolation="none",
+            cmap=cm,
+            extent=(dist_min, dist_max, max_freq, min_freq),
+            vmin=clip_val_min,
+            vmax=clip_val_max,
+        )
+        # Hide the axes
+        ax.axis("off")  # pragma: no cover
+        # Hide the ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        fig = plt.figure(figsize=(14, 12))
+        spec = gridspec.GridSpec(ncols=2, nrows=1, width_ratios=[12, 1], figure=fig)
+
+        # Create main axis for imshow with exact 12x12 aspect
+        ax = fig.add_subplot(spec[0])
+        img = ax.imshow(
+            amplitude_spec[min_frq_idx:max_frq_idx, :],
+            aspect="auto",
+            interpolation="none",
+            cmap=cm,
+            extent=(dist_min, dist_max, max_freq, min_freq),
+            vmin=clip_val_min,
+            vmax=clip_val_max,
+        )
+
+        # Format main plot
+        ax.set_xlabel("Distance (m)", fontsize=20)
+        ax.set_ylabel("Frequency (Hz)", fontsize=20)
+
+        # Increase tick label size and thickness
+        ax.tick_params(axis="both", which="major", labelsize=18, width=2.5, length=8)
+        ax.tick_params(axis="both", which="minor", labelsize=16, width=2, length=5)
+
+        # Increase thickness of axis lines
+        for spine in ax.spines.values():
+            spine.set_linewidth(2.5)
+
+        # Create a separate axis for colorbar to keep imshow part exactly 12x12
+        cbar_ax = fig.add_subplot(spec[1])
+        cbar = plt.colorbar(img, cax=cbar_ax)
+        cbar.set_label("Amplitude", fontsize=18)
+        cbar.ax.tick_params(labelsize=16)
+        # Ensure colorbar offset text (if using scientific notation) is also large
+        cbar.formatter.set_powerlimits((-2, 2))  # Force scientific notation if needed
+        cbar.ax.yaxis.get_offset_text().set_fontsize(
+            16
+        )  # Correct way to set offset text size
+        # Add large axis titles
+        ax.set_xlabel("Distance (m)", fontsize=32)
+        ax.set_ylabel("Frequency (Hz)", fontsize=32)
+
+        # Increase tick label size and thickness
+        ax.tick_params(axis="both", which="major", labelsize=28, width=2.5, length=8)
+        ax.tick_params(axis="both", which="minor", labelsize=28, width=2, length=5)
+
+        # Increase thickness of axis lines
+        ax.spines["top"].set_linewidth(2.5)
+        ax.spines["bottom"].set_linewidth(2.5)
+        ax.spines["left"].set_linewidth(2.5)
+        ax.spines["right"].set_linewidth(2.5)
+
+    # save figure
     fig_path_ranks = os.path.join(fig_path, "rank_" + str(output_rank))
     # Check if the directory does not exist
     if not os.path.exists(fig_path_ranks):
@@ -237,19 +296,23 @@ def plot_train_test_loss(history, path):
 def search_keyword_in_files(directory, keyword):
     """Function to search for a keyword in all text results within a directory"""
     keyword_count = 0
-    lines_with_keyword = []
+    matching_lines: list[str] = []
+    trailing_punct = str.maketrans("", "", string.punctuation)
 
-    # Walk through all files in the specified directory
-    for root, _, files in os.walk(directory):
-        for file in files:
-            # Check if the file is a text file
-            if file.endswith(".txt"):
-                file_path = os.path.join(root, file)
-                with open(file_path, encoding="utf-8") as f:
-                    for line in f:
-                        if keyword in line:
-                            keyword_count += line.count(keyword)
-                            # Strip removes leading/trailing whitespace
-                            lines_with_keyword.append(line.strip())
+    # iterate over files in the first level only
+    for file_path in directory.iterdir():
+        if file_path.suffix != ".txt" or not file_path.is_file():
+            continue
 
-    return keyword_count, lines_with_keyword
+        with file_path.open(encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.rstrip()
+                if not line:
+                    continue
+
+                last_token = line.split()[-1].translate(trailing_punct)
+                if last_token == keyword:
+                    keyword_count += 1
+                    matching_lines.append(line)
+
+    return keyword_count, matching_lines

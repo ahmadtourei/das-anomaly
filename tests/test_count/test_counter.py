@@ -1,68 +1,68 @@
 """
-Unit-tests for das_anomaly.count.counter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unit-tests for das_anomaly.count.counter.
 """
 
 from pathlib import Path
 
-import pytest
-
 from das_anomaly.count.counter import AnomalyCounter, CounterConfig
 
 
-def _mk_txt(directory: Path, name: str, text: str) -> Path:
-    """Create a tiny *.txt* file inside *directory* for test setup."""
-    p = directory / name
-    p.write_text(text)
-    return p
+def _mk_txt(where: Path, name: str, text: str) -> None:
+    """Write a small *.txt* file into *where* (top level only)."""
+    (where / name).write_text(text)
 
 
-def test_run_counts_and_writes(tmp_path: Path):
-    """Three “anomaly” lines ⇒ correct summary string and 3-line file."""
-    out_root = tmp_path / "out"
-    target = out_root / "results"
-    target.mkdir(parents=True)
+class TestAnomalyCounter:
+    """Happy-path and edge-case checks for the counter module."""
 
-    _mk_txt(target, "a.txt", "anomaly one\nno hit\nanomaly two\n")
-    _mk_txt(target, "b.txt", "still no\nanomaly three\n")
+    def test_run_counts_and_writes(self, tmp_path: Path):
+        """Three matching lines → summary says 3 and file holds 4 lines."""
+        out_root = tmp_path / "out"
+        out_root.mkdir()
 
-    cfg = CounterConfig(
-        results_path=out_root, results_folder_name="results", keyword="anomaly"
-    )
-    summary = AnomalyCounter(cfg).run()
+        # keyword must be *last* token in the matching lines
+        _mk_txt(out_root, "a.txt", "one anomaly\nno hit here\nanother anomaly\n")
+        _mk_txt(out_root, "b.txt", "still no\nthird anomaly\n")
 
-    assert summary == "Total 'anomaly' lines: 3"
-    assert cfg.summary_file.exists()
-    assert cfg.summary_file.read_text().count("\n") == 2  # → 3 lines total
+        cfg = CounterConfig(results_path=out_root, keyword="anomaly")
+        summary = AnomalyCounter(cfg).run()
 
+        expected_msg = (
+            f"Total detected 'anomaly': 3\n" f"Text file saved at {cfg.summary_file}"
+        )
+        assert summary == expected_msg
 
-def test_custom_keyword(tmp_path: Path):
-    """Case-sensitive search for 'foo' finds exactly two matches."""
-    out_root = tmp_path / "out"
-    target = out_root / "res"
-    target.mkdir(parents=True)
+        text_lines = cfg.summary_file.read_text().splitlines()
+        # 3 matches + summary line
+        assert len(text_lines) == 4
+        assert text_lines[-1] == "Total detected 'anomaly': 3"
 
-    _mk_txt(target, "log.txt", "foo bar\nFOO bar\nfoo again\n")
+    def test_custom_keyword(self, tmp_path: Path):
+        """Case-sensitive search for 'foo' finds exactly two matches."""
+        out_root = tmp_path / "out"
+        out_root.mkdir()
 
-    cfg = CounterConfig(results_path=out_root, results_folder_name="res", keyword="foo")
-    assert AnomalyCounter(cfg).run() == "Total 'foo' lines: 2"
+        _mk_txt(out_root, "x.txt", "spam foo\nFOO ignored\nbar foo\n")
 
+        cfg = CounterConfig(results_path=out_root, keyword="foo")
+        expected = f"Total detected 'foo': 2\n" f"Text file saved at {cfg.summary_file}"
+        assert AnomalyCounter(cfg).run() == expected
 
-def test_missing_dir_raises(tmp_path: Path):
-    """Creating CounterConfig on a non-existent folder should fail."""
-    with pytest.raises(FileNotFoundError):
-        CounterConfig(results_path=tmp_path, results_folder_name="does_not_exist")
+    def test_target_dir_auto_created(self, tmp_path: Path):
+        """CounterConfig always creates *count* folder."""
+        cfg = CounterConfig(results_path=tmp_path, keyword="x")
+        assert cfg.target_dir.exists()
 
+    def test_zero_matches(self, tmp_path: Path):
+        """No match → summary file contains only the summary line."""
+        out_root = tmp_path / "out"
+        out_root.mkdir()
 
-def test_zero_matches(tmp_path: Path):
-    """Zero matches ⇒ summary string with 0 and empty summary file."""
-    out_root = tmp_path / "out"
-    (out_root / "res").mkdir(parents=True)
+        cfg = CounterConfig(results_path=out_root, keyword="none")
+        ret = AnomalyCounter(cfg).run()
 
-    cfg = CounterConfig(
-        results_path=out_root, results_folder_name="res", keyword="nowhere"
-    )
-    summary = AnomalyCounter(cfg).run()
-
-    assert summary == "Total 'nowhere' lines: 0"
-    assert cfg.summary_file.read_text() == ""
+        expected = (
+            f"Total detected 'none': 0\n" f"Text file saved at {cfg.summary_file}"
+        )
+        assert ret == expected
+        assert cfg.summary_file.read_text() == "Total detected 'none': 0\n"

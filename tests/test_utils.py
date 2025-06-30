@@ -59,17 +59,20 @@ class TestCalculatePercentile:
 
 
 class TestSearchKeyword:
-    """Tests for search_keyword_in_files"""
+    """Tests for search_keyword_in_files."""
 
     def test_keyword_found(self, tmp_path: Path):
         f1 = tmp_path / "a.txt"
         f2 = tmp_path / "b.txt"
-        f1.write_text("line apple\nbanana\n")
-        f2.write_text("apple pie\nanother apple\n")
+
+        # keyword must be the final token on the line to match
+        f1.write_text("apple\nbanana\nnot this apple pie\n")  # 1 match
+        f2.write_text("just apple\nanother line\n")  # 1 match
+
         count, lines = search_keyword_in_files(tmp_path, "apple")
-        assert count == 3
-        assert len(lines) == 3
-        assert all("apple" in li for li in lines)
+        assert count == 2  # ← was 3
+        assert len(lines) == 2
+        assert all(line.split()[-1].rstrip(".,") == "apple" for line in lines)
 
 
 class DummyKDE:
@@ -220,10 +223,37 @@ class TestPlotSpec:
         max_freq = 50
         with pytest.raises(
             ValueError,
-            match=f"`min_freq` {min_freq} must be less than or "
-            f"equal to `max_freq` {max_freq}",
+            match=f"`min_freq` {min_freq} must be less than " f"`max_freq` {max_freq}",
         ):
             plot_spec(_dummy_patch(), min_freq, max_freq, 1000, "t", 0, tmp_path, 72)
+
+    def test_full_axes_branch(self, tmp_path: Path, dummy_patch, monkeypatch):
+        # Collect the path that would be written
+        saved: list[Path] = []
+
+        def fake_savefig(fname, *_, **__):
+            saved.append(Path(fname))
+
+        monkeypatch.setattr(plt, "savefig", fake_savefig)
+
+        # Call the function under test – should not raise
+        plot_spec(
+            dummy_patch,
+            min_freq=0,
+            max_freq=40,
+            sampling_rate=100,
+            title="demo",
+            output_rank=0,
+            fig_path=tmp_path,
+            dpi=72,
+            hide_axes=False,
+        )
+
+        # A PNG path should have been “saved”
+        assert saved, "plt.savefig was never invoked"
+        assert saved[0].suffix == ".png"
+        # Confirm the figure lives inside rank_0 subfolder
+        assert saved[0].parent.name == "rank_0"
 
 
 class TestPlotTrainTestLoss:

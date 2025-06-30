@@ -46,7 +46,6 @@ def test_trainer_build_and_save(monkeypatch, dummy_cfg):
     # ensure fit + save were called
     fake_model.fit.assert_called()
     fake_model.save.assert_called()
-    fake_model.layers[0].save.assert_called()
 
 
 def test_saved_files(tmp_path, monkeypatch):
@@ -83,10 +82,9 @@ def test_saved_files(tmp_path, monkeypatch):
     # artifacts really exist
     # model + encoder were asked to save to the expected locations
     keras_model.save.assert_called_with(
-        cfg.out_dir / "model_16.h5", include_optimizer=False
-    )
-    keras_model.layers[0].save.assert_called_with(
-        cfg.out_dir / "encoder_model_16", save_format="tf"
+        cfg.out_dir / "model_16.h5",
+        include_optimizer=True,
+        save_format="h5",
     )
 
     # history file written

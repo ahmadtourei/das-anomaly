@@ -4,7 +4,7 @@ Generate Power Spectral Density (PSD) plots from DAS data.
 Example
 -------
 >>> from das_anomaly.psd import PSDConfig, PSDGenerator
->>> cfg = PSDConfig(data_path="~/data", psd_path="~/results/psd")
+>>> cfg = PSDConfig()
 >>> # serial processing with single processor:
 >>> PSDGenerator(cfg).run()
 >>> # parallel processing with multiple processors using MPI:
@@ -22,7 +22,7 @@ import numpy as np
 # optional MPI import
 try:
     from mpi4py import MPI  # (we want the canonical upper-case name)
-except ModuleNotFoundError:
+except:
 
     class _DummyComm:
         """Stand-in that mimics the tiny subset we use."""
@@ -37,6 +37,10 @@ except ModuleNotFoundError:
             return obj
 
     MPI = type("FakeMPI", (), {"COMM_WORLD": _DummyComm()})()  # pragma: no cover
+    print(
+        "mpi4py not available - A fake MPI communicator is assigned. "
+        "Install mpi4py and run your script under `mpirun` for parallel execution."
+    )
 
 from das_anomaly import get_psd_max_clip, plot_spec
 from das_anomaly.settings import SETTINGS
@@ -46,6 +50,7 @@ from das_anomaly.settings import SETTINGS
 class PSDConfig:
     """All knobs for the PSD workflow (values mirror SETTINGS defaults)."""
 
+    data_unit: Path | str = SETTINGS.DATA_UNIT
     data_path: Path | str = SETTINGS.DATA_PATH
     psd_path: Path | str = SETTINGS.PSD_PATH
 
@@ -66,6 +71,8 @@ class PSDConfig:
     # derived / overrideable
     min_freq: float = SETTINGS.MIN_FREQ
     max_freq: float = SETTINGS.MAX_FREQ
+
+    hide_axes: bool = True
 
     def __post_init__(self):
         self.data_path = Path(self.data_path).expanduser()
@@ -130,12 +137,23 @@ class PSDGenerator:
             raise ValueError("No patch of DAS data found within data path: %s")
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
-            yield (
-                patch.velocity_to_strain_rate_edgeless(
-                    step_multiple=self.cfg.step_multiple
-                ).detrend("time"),
-                sr,
-            )
+            if self.cfg.data_unit == "velocity":
+                yield (
+                    patch.velocity_to_strain_rate_edgeless(
+                        step_multiple=self.cfg.step_multiple
+                    ).detrend("time"),
+                    sr,
+                )
+            elif self.cfg.data_unit == "strain_rate":
+                yield (
+                    patch.detrend("time"),
+                    sr,
+                )
+            else:
+                raise ValueError(
+                    "Unsupported data_unit: {data_unit!r}. "
+                    "Expected 'velocity' or 'strain_rate'."
+                )
 
     def _iter_patches_parallel(self, flag: bool = True):
         """
@@ -202,6 +220,7 @@ class PSDGenerator:
             output_rank=0,  # keeps MPI + serial use happy
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
+            hide_axes=self.cfg.hide_axes,
         )
 
     def _get_max_clip(self, patch_sr_tuple):
