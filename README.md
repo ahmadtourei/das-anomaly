@@ -1,5 +1,5 @@
 # das-anomaly
-[![DOI](https://zenodo.org/badge/823391484.svg)](https://zenodo.org/doi/10.5281/zenodo.12747212)
+[![DOI](https://zenodo.org/badge/823391484.svg)](https://doi.org/10.5281/zenodo.12747212)
 [![Licence](https://www.gnu.org/graphics/lgplv3-88x31.png)](https://www.gnu.org/licenses/lgpl.html)
 [![codecov](https://codecov.io/gh/ahmadtourei/das-anomaly/branch/main/graph/badge.svg)](https://codecov.io/gh/ahmadtourei/das-anomaly)
 
@@ -12,8 +12,24 @@ If you use _das-anomaly_ in your work, please cite the following:
 
 ## Installation
 ### Prerequisites
-- Python >= 3.10
-- `pip`
+- Python = 3.10, 3.11, 3.12
+- pip
+
+### Dependencies
+- [DASCore](https://dascore.org/)
+- [matplotlib](https://matplotlib.org/)
+- [scikit-learn](https://scikit-learn.org/stable/)
+- [TesorFlow](https://www.tensorflow.org/install)
+
+Optional:
+- [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
+
+Dependency notes:
+1. Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
+
+2. If you'd like to train the model on GPU, make sure you install TensorFlow with GPU setup in your environment. More information can be found [here](https://www.tensorflow.org/install/pip#:~:text=4.-,Install%20TensorFlow,-TensorFlow%20requires%20a).
+
+3. Currently waiting on `TesorFlow` to support Python 3.13 before we can support it as well.
 
 ### Install Required Dependencies Only
 For clean dependency management, use a virtual environment or a fresh Conda environment.
@@ -113,20 +129,6 @@ AnomalyDetector(cfg).run_parallel()
 cfg = CounterConfig(keyword="anomaly")
 AnomalyCounter(cfg).run() # prints info on number of anomalies and path to them
 ```
-
-## Package's Dependencies
-- [DASCore](https://dascore.org/)
-- [matplotlib](https://matplotlib.org/)
-- [scikit-learn](https://scikit-learn.org/stable/)
-- [TesorFlow](https://www.tensorflow.org/install)
-
-Optional:
-- [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
-
-Dependency notes:
-1. Installation and loading of [Open MPI](https://www.open-mpi.org/) is required prior to `MPI4Py` installation. Ensure proper installation using a [helloworld example](https://mpi4py.readthedocs.io/en/3.1.4/install.html#testing).
-
-2. If you'd like to train the model on GPU, make sure you install TensorFlow with GPU setup in your environment. More information can be found [here](https://www.tensorflow.org/install/pip#:~:text=4.-,Install%20TensorFlow,-TensorFlow%20requires%20a).
 
 ## Note
 Still under development. Use with caution.
