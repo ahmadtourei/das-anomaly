@@ -2,8 +2,8 @@
 Global configuration for the DAS-anomaly demo pipeline
 ------------------------------------------------------
 
-
-DO NOT EDIT. Edit the config_user.py script instead.
+DO NOT EDIT. Editing this script may affect performance of some of the tests.
+Edit the config_user.py script instead.
 """
 
 # Data unit - should be either velocity or strain_rate
