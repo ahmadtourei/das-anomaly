@@ -118,7 +118,7 @@ Note: Since the `TrainSplitConfig()` function randomly selects PSD images from t
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Then, make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 
 
 7. Run the trained model: 
-The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
+The `das_anomaly.detect` module applies the trained model to the data to detect anomalies in the PSD images and writes their information. It also copies the detected anomaly to the RESULTS_PATH. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
 ### Example
 ```python
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter
