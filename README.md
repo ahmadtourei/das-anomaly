@@ -7,7 +7,7 @@ _das-anomaly_ is an open-source Python package for unsupervised anomaly detectio
 
 If you use _das-anomaly_ in your work, please cite the following:
 
-> Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.14927429
+> Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.12747212
 
 
 ## Installation
@@ -19,7 +19,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 - [DASCore](https://dascore.org/)
 - [matplotlib](https://matplotlib.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
-- [TesorFlow](https://www.tensorflow.org/install)
+- [TensorFlow](https://www.tensorflow.org/install)
 
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
@@ -56,9 +56,9 @@ pip uninstall das_anomaly
 ## Instructions
 The main steps for using the package are as follows:
 1. Define constants: 
-Using the _user_defaults_ script in the das_anomaly directory, define the constants and directory paths (for data, PSD images, detected anomaly results, etc.)
+Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths (for data, PSD images, detected anomaly results, etc.)
 2. Get a fixed value for the upper bound of PSD amplitudes:
-To ensure that all the PSD images have the same colorbar range, we need to get an appropriate value for CLIP_VALUE_MAX in the _user_defaults_ script. To do so, we need to use the `get_psd_max_clip` function to calculate this value from a portion (TIME_WINDOW) of the data with no anomalies (i.e., background noise data).
+To ensure that all the PSD images have the same colorbar range, we need to get an appropriate value for CLIP_VALUE_MAX in the _config_user_ script. To do so, we need to use the `get_psd_max_clip` function to calculate this value from a portion (TIME_WINDOW) of the data with no anomalies (i.e., background noise data).
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -110,7 +110,7 @@ cfg = TrainAEConfig()
 AutoencoderTrainer(cfg).run()
 ```
 5. Test and set a threshold: 
-Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
+Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 
 
 6. Run the trained model: 
 The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and their information.
