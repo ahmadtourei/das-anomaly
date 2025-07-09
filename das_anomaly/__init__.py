@@ -6,12 +6,11 @@ import os
 import warnings
 from importlib.metadata import version
 
-from .utils import calculate_percentile, check_if_anomaly, decoder, density, encoder, get_psd_max_clip, plot_spec, plot_train_test_loss, search_keyword_in_files
+from .utils import check_if_anomaly, decoder, density, encoder, get_psd_max_clip, plot_spec, plot_train_test_loss, search_keyword_in_files
 from .settings import SETTINGS
 
 
 __all__ = [
-    "calculate_percentile",
     "check_if_anomaly",
     "decoder",
     "density",

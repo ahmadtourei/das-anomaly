@@ -15,7 +15,6 @@ from keras.models import Sequential
 from PIL import Image
 
 from das_anomaly.utils import (
-    calculate_percentile,
     check_if_anomaly,
     decoder,
     density,
@@ -26,36 +25,6 @@ from das_anomaly.utils import (
     plot_train_test_loss,
     search_keyword_in_files,
 )
-
-
-class TestCalculatePercentile:
-    """Tests for calculate_percentile"""
-
-    def test_basic(self):
-        """50 % → median, 0 % → min, empty list → None."""
-        data = [1, 2, 3, 4, 5]
-        assert calculate_percentile(data, 50) == 3
-        assert calculate_percentile(data, 0) == 1
-        assert calculate_percentile([], 50) is None
-
-    def test_out_of_bounds(self):
-        """Out-of-range percentile → ValueError."""
-        with pytest.raises(ValueError):
-            calculate_percentile([1, 2, 3], -5)
-        with pytest.raises(ValueError):
-            calculate_percentile([1, 2, 3], 105)
-
-    def test_interpolation(self):
-        """25 % of [1,2,3,4] → 1.75 via linear interpolation."""
-        assert np.isclose(calculate_percentile([1, 2, 3, 4], 25), 1.75)
-
-    def test_numpy_input(self):
-        """Test NumPy arrays (incl. empty)."""
-        arr = np.array([10, 20, 30, 40])
-        assert calculate_percentile(arr, 50) == 25  # median of sorted [10,20,30,40]
-
-        empty = np.array([])
-        assert calculate_percentile(empty, 90) is None
 
 
 class TestSearchKeyword:
