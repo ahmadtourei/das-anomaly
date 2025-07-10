@@ -140,8 +140,11 @@ class AnomalyDetector:
         for i in range(rank, len(subdirs), world_size):
             folder_path: Path = subdirs[i]
             # if no directories exist under psd_path, rank 0 looks for PNGs under psd_path
-            if rank == 0 and len(subdirs) == 0:
-                spectra = sorted(self.cfg.psd_path.glob("*.png"))
+            if len(subdirs) == 0:
+                if rank == 0:
+                    spectra = sorted(self.cfg.psd_path.glob("*.png"))
+                else:
+                    continue
             else:
                 spectra = sorted(folder_path.glob("*.png"))
 
