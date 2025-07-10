@@ -193,3 +193,40 @@ class TestRunSkipsNonDirs:
         assert "rank_0" in logs[0].name
         # no log created for the stray file
         assert "readme" not in logs[0].name
+
+
+class TestRootLevelSpectra:
+    """
+    When *.png files live directly in ``psd_path`` (plus at least one
+    sub-directory to trigger the loop) they must still be processed and—
+    because our mocks always flag “anomaly”— copied to the results folder.
+    """
+
+    def test_root_pngs_are_processed(self, tmp_path, patched_tf):
+        psd_root = tmp_path / "psd"
+        psd_root.mkdir()
+
+        # ❶ root-level spectra
+        for i in range(4):
+            _make_dummy_png(psd_root / f"root_{i}.png")
+
+        # ❷ at least one sub-directory (can stay empty)
+        (psd_root / "rank_0").mkdir()
+
+        # config & dummy model
+        cfg = DetectConfig(
+            psd_path=psd_root,
+            results_path=tmp_path / "out",
+            train_images_path=tmp_path,
+            trained_path=tmp_path,
+            density_threshold=1_000,  # everything is “anomaly” with our mocks
+            size=8,
+        )
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
+
+        # run detector
+        AnomalyDetector(cfg).run()
+
+        # assertions
+        copied = list((cfg.results_path / "copied_detected_anomalies").glob("*.png"))
+        assert len(copied) == 4, "all root-level spectra should be copied"
