@@ -110,3 +110,97 @@ class TestRunParallelMPI:
         copied = list((cfg.results_path / "copied_detected_anomalies").glob("*.png"))
         # since every folder handled by this rank has exactly one PNG
         assert len(copied) == len(expected)
+
+
+class TestRootPngHandling:
+    """
+    When one or more sub-directories exist, run_parallel() should ignore PNGs
+    that sit directly inside *psd_path*.  They are processed only in the special
+    “no-subdir” case.
+    """
+
+    def test_root_pngs_ignored_if_subdirs_exist(
+        self, tmp_path, patched_tf, monkeypatch
+    ):
+        # set-up
+        psd_root = tmp_path / "psd"
+        psd_root.mkdir()
+
+        # three PNGs directly under psd_root (must *not* be copied)
+        for i in range(3):
+            _make_png(psd_root / f"root_{i}.png")
+
+        # one sub-dir with a single PNG (this one should be copied)
+        sub = psd_root / "rank_0"
+        sub.mkdir()
+        _make_png(sub / "one.png")
+
+        cfg = DetectConfig(
+            psd_path=psd_root,
+            results_path=tmp_path / "out",
+            train_images_path=tmp_path,
+            trained_path=tmp_path,
+            density_threshold=1_000,
+            size=8,
+        )
+        (cfg.trained_path / f"model_{cfg.size}.h5").touch()
+
+        # fake a single-rank MPI world
+        _inject_fake_mpi(monkeypatch, rank=0, size=1)
+
+        # exercise
+        AnomalyDetector(cfg).run_parallel()
+
+        # verify
+        copied = list((cfg.results_path / "copied_detected_anomalies").glob("*.png"))
+        assert len(copied) == 1, "root-level PNGs must be skipped when sub-dirs exist"
+        assert copied[0].name == "one.png"
+
+
+@pytest.mark.parametrize(
+    "rank, world_size, expected_n_copies, expect_log",
+    [
+        (0, 2, 4, True),  # rank-0 handles *all* root-level PNGs
+        (1, 2, 0, False),  # every other rank skips work
+    ],
+)
+def test_no_subdirs_root_pngs_only(
+    tmp_path, patched_tf, monkeypatch, rank, world_size, expected_n_copies, expect_log
+):
+    """
+    If *psd_path* contains **no sub-directories**:
+
+    • rank 0 must process every PNG found directly in *psd_path*
+    • all other ranks do nothing
+    """
+    # fabricate four root-level PNGs
+    psd_root = tmp_path / "psd"
+    psd_root.mkdir()
+    for i in range(4):
+        _make_png(psd_root / f"root_{i}.png")
+
+    # config & dummy model inside tmp_path
+    cfg = DetectConfig(
+        psd_path=psd_root,
+        results_path=tmp_path / "out",
+        train_images_path=tmp_path,
+        trained_path=tmp_path,
+        density_threshold=1_000,
+        size=8,
+    )
+    (cfg.trained_path / f"model_{cfg.size}.h5").touch()
+
+    # fake the MPI world for the chosen rank
+    _inject_fake_mpi(monkeypatch, rank=rank, size=world_size)
+
+    # run
+    AnomalyDetector(cfg).run_parallel()
+
+    # copied anomalies
+    copied = list((cfg.results_path / "copied_detected_anomalies").glob("*.png"))
+    assert len(copied) == expected_n_copies
+
+    # root-level log file (rank 0 only)
+    log_name = f"{cfg.psd_path.name}_output_model_{cfg.size}_anomaly.txt"
+    log_path = cfg.results_path / log_name
+    assert log_path.exists() is expect_log

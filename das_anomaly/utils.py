@@ -19,31 +19,6 @@ from tensorflow.keras.models import Sequential
 from das_anomaly.settings import SETTINGS
 
 
-def calculate_percentile(data, percentile):
-    """
-    Return the given percentile of *data* using linear interpolation
-    (equivalent to numpy.percentile with method="linear").
-    Empty input ➜ None.
-    """
-    if len(data) == 0:
-        return None
-
-    if not (0 <= percentile <= 100):
-        raise ValueError("percentile must be in [0, 100]")
-
-    x = sorted(data)
-    n = len(x)
-    # position between 0 and n-1
-    pos = (n - 1) * percentile / 100.0
-    lo = int(np.floor(pos))
-    hi = int(np.ceil(pos))
-    if lo == hi:
-        return x[lo]
-    # interpolate
-    weight_hi = pos - lo
-    return x[lo] * (1 - weight_hi) + x[hi] * weight_hi
-
-
 def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     """Check whether the image is an anomaly"""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input

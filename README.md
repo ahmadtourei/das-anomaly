@@ -7,7 +7,7 @@ _das-anomaly_ is an open-source Python package for unsupervised anomaly detectio
 
 If you use _das-anomaly_ in your work, please cite the following:
 
-> Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.14927429
+> Ahmad Tourei. (2025). ahmadtourei/das-anomaly: latest (Concept). Zenodo. http://doi.org/10.5281/zenodo.12747212
 
 
 ## Installation
@@ -19,7 +19,7 @@ If you use _das-anomaly_ in your work, please cite the following:
 - [DASCore](https://dascore.org/)
 - [matplotlib](https://matplotlib.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
-- [TesorFlow](https://www.tensorflow.org/install)
+- [TensorFlow](https://www.tensorflow.org/install)
 
 Optional:
 - [MPI4Py](https://mpi4py.readthedocs.io/en/stable/install.html)
@@ -56,9 +56,9 @@ pip uninstall das_anomaly
 ## Instructions
 The main steps for using the package are as follows:
 1. Define constants: 
-Using the _user_defaults_ script in the das_anomaly directory, define the constants and directory paths (for data, PSD images, detected anomaly results, etc.)
-2. Get a fixed value for the upper bound of PSD amplitudes:
-To ensure that all the PSD images have the same colorbar range, we need to get an appropriate value for CLIP_VALUE_MAX in the _user_defaults_ script. To do so, we need to use the `get_psd_max_clip` function to calculate this value from a portion (TIME_WINDOW) of the data with no anomalies (i.e., background noise data).
+Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc.
+2. Set a consistent upper bound for PSD amplitude values:
+To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes a suitable maximum amplitude from a selected TIME_WINDOW of background noise (anomaly-free) data.
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -72,7 +72,7 @@ clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
-Use the `das_anomaly.psd` module and create power spectral density (PSD) plots in RGB format and in plain mode (no axes or colorbar). First, create a spool of DAS data and apply a detrend function to each patch. Then, average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. Finally, create PSDs of anomaly-free images (usually background noise) and known anomalies. You can use MPI to distribute plotting PSDs over CPUs. 
+Use the `das_anomaly.psd` module and create PSD plots in RGB format and in plain mode (with no axes or colorbar). The `das_anomaly.psd.PSDGenerator reads DAS data, creates a spool using DASCore library, applies a detrend function to each patch of the chunked spool, and then average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. You can use MPI to distribute reading data and plotting PSDs over CPUs. 
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -83,7 +83,7 @@ PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
 PSDGenerator(cfg).run_parallel()
 ```
-Note: If you'd like to use PSDs for purposes other than training, the `hide_axes=False` will plot the PSD with axes and colorbar (default is True).
+Note: If you'd like to use PSDs for purposes other than training the model, the `hide_axes=False` will plot the PSD with axes and colorbar (default is True).
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -94,8 +94,11 @@ PSDGenerator(cfg).run()
 # parallel processing with multiple processors using MPI:
 PSDGenerator(cfg).run_parallel()
 ```
-4. Train: 
-The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py).
+4. Select and copy known anomaly PSD plots:
+From the generated PSD plots, identify and copy examples of known anomalies to the ANOMALY_IMAGES_PATH specified in the _config_user_ script. These anomalies can include events such as earthquakes from an existing catalog, seismic activity, instrument noise, anthropogenic disturbances, etc. Including these examples helps improve the accuracy of thresholding during the anomaly detection process.
+
+5. Train: 
+The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py). 
 ### Example
 ```python
 from das_anomaly.settings import SETTINGS
@@ -109,11 +112,13 @@ ImageSplitter(cfg).run()
 cfg = TrainAEConfig()
 AutoencoderTrainer(cfg).run()
 ```
-5. Test and set a threshold: 
-Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Make sure to modify the DENSITY_THRESHOLD parameter in the _user_defaults_ script. 
+Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
 
-6. Run the trained model: 
-The `das_anomaly.detect` module applies the trained model to the data, detects anomalies in the PSD images, and writes their information. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and their information.
+6. Test and set a threshold: 
+Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Then, make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 
+
+7. Run the trained model: 
+The `das_anomaly.detect` module applies the trained model to the data to detect anomalies in the PSD images and writes their information. It also copies the detected anomaly to the RESULTS_PATH. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
 ### Example
 ```python
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter

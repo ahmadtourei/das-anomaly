@@ -46,9 +46,9 @@ NUM_IMAGE = 1000
 RATIO = 0.2
 
 # Define the directory path for training, testing, and known anomalous PSD images
-TRAIN_IMAGES_PATH = "/data/training_dataset/"
-TEST_IMAGES_PATH = "/data/training_dataset/"
-ANOMALY_IMAGES_PATH = "/data/anomalous_dataset/"
+TRAIN_IMAGES_PATH = "./data/training_dataset/"
+TEST_IMAGES_PATH = "./data/training_dataset/"
+ANOMALY_IMAGES_PATH = "./data/anomalous_dataset/"
 
 # Number of epochs for training
 NUM_EPOCH = 250
