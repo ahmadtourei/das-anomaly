@@ -100,10 +100,16 @@ class AnomalyDetector:
     # -------------------------------------------------------------- #
     def run(self) -> None:
         """Score every PSD PNG and log / copy anomalies with single processor."""
-        for folder in self.cfg.psd_path.iterdir():
+        root_pngs = list(self.cfg.psd_path.glob("*.png"))
+        for i, folder in enumerate(self.cfg.psd_path.iterdir()):
             if not folder.is_dir():
                 continue
-            spectra = sorted(folder.glob("*"))
+
+            spectra = (
+                sorted(root_pngs + list(folder.glob("*.png")))
+                if i == 0
+                else sorted(folder.glob("*.png"))
+            )
             out_file = (
                 self.cfg.results_path
                 / f"{folder.name}_output_model_{self.cfg.size}_anomaly.txt"
@@ -133,7 +139,11 @@ class AnomalyDetector:
 
         for i in range(rank, len(subdirs), world_size):
             folder_path: Path = subdirs[i]
-            spectra = sorted(folder_path.glob("*"))
+            # if no directories exist under psd_path, rank 0 looks for PNGs under psd_path
+            if rank == 0 and len(subdirs) == 0:
+                spectra = sorted(self.cfg.psd_path.glob("*.png"))
+            else:
+                spectra = sorted(folder_path.glob("*.png"))
 
             out_file = (
                 self.cfg.results_path
