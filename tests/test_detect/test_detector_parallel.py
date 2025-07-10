@@ -173,13 +173,13 @@ def test_no_subdirs_root_pngs_only(
     • rank 0 must process every PNG found directly in *psd_path*
     • all other ranks do nothing
     """
-    # ── fabricate four root-level PNGs ──────────────────────────────
+    # fabricate four root-level PNGs
     psd_root = tmp_path / "psd"
     psd_root.mkdir()
     for i in range(4):
         _make_png(psd_root / f"root_{i}.png")
 
-    # ── config & dummy model inside tmp_path ───────────────────────
+    # config & dummy model inside tmp_path
     cfg = DetectConfig(
         psd_path=psd_root,
         results_path=tmp_path / "out",
@@ -190,17 +190,17 @@ def test_no_subdirs_root_pngs_only(
     )
     (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
-    # ── fake the MPI world for the chosen rank ─────────────────────
+    # fake the MPI world for the chosen rank
     _inject_fake_mpi(monkeypatch, rank=rank, size=world_size)
 
-    # ── run ─────────────────────────────────────────────────────────
+    # run
     AnomalyDetector(cfg).run_parallel()
 
-    # ── copied anomalies ───────────────────────────────────────────
+    # copied anomalies
     copied = list((cfg.results_path / "copied_detected_anomalies").glob("*.png"))
     assert len(copied) == expected_n_copies
 
-    # ── root-level log file (rank 0 only) ──────────────────────────
+    # root-level log file (rank 0 only)
     log_name = f"{cfg.psd_path.name}_output_model_{cfg.size}_anomaly.txt"
     log_path = cfg.results_path / log_name
     assert log_path.exists() is expect_log
