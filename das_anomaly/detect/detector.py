@@ -136,6 +136,26 @@ class AnomalyDetector:
 
         # Materialise sub-folders once for every rank
         subdirs: list[Path] = [p for p in self.cfg.psd_path.iterdir() if p.is_dir()]
+        if rank == 0 and not subdirs:
+            spectra = sorted(self.cfg.psd_path.glob("*.png"))
+        out_file = (
+            self.cfg.results_path
+            / f"{folder_path.name}_output_model_{self.cfg.size}_anomaly.txt"
+        )
+
+        with out_file.open("w") as fh:
+            for j, img_path in enumerate(spectra):
+                flag = check_if_anomaly(
+                    encoder_model=self.encoder,
+                    size=self.cfg.size,
+                    img_path=img_path,
+                    density_threshold=self.cfg.density_threshold,
+                    kde=self.kde,
+                )
+                print(f"Rank {rank} · line {j}, {img_path}: {flag}", file=fh)
+
+                if flag.endswith("anomaly"):
+                    shutil.copy(img_path, self.dest_dir)
 
         for i in range(rank, len(subdirs), world_size):
             folder_path: Path = subdirs[i]
