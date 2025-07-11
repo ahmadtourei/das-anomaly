@@ -68,8 +68,9 @@ from das_anomaly.settings import SETTINGS
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
 gen = PSDGenerator(cfg)
-clip_val = gen.run_get_psd_val()
-print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
+percentile = 95
+clip_val = gen.run_get_psd_val(percentile=percentile)
+print(f"Mean {percentile}-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
 Use the `das_anomaly.psd` module and create PSD plots in RGB format and in plain mode (with no axes or colorbar). The `das_anomaly.psd.PSDGenerator reads DAS data, creates a spool using DASCore library, applies a detrend function to each patch of the chunked spool, and then average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. You can use MPI to distribute reading data and plotting PSDs over CPUs. 

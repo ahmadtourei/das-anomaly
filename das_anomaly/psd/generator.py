@@ -73,6 +73,7 @@ class PSDConfig:
     max_freq: float = SETTINGS.MAX_FREQ
 
     hide_axes: bool = True
+    save_fig: bool = True
 
     def __post_init__(self):
         self.data_path = Path(self.data_path).expanduser()
@@ -104,14 +105,14 @@ class PSDGenerator:
         for patch in self._iter_patches_parallel():
             self._plot_patch(patch)
 
-    def run_get_psd_val(self) -> None:
+    def run_get_psd_val(self, percentile=95) -> None:
         """
         Entry point - iterate over patches and get the mean value of max
         value for clipping colorbar.
         """
         values: list[float] = []
         for patch in self._iter_patches(select_time=False):
-            val = self._get_max_clip(patch)
+            val = self._get_max_clip(patch, percentile=percentile)
             values.append(val)
         return float(np.mean(values)) if values else float("nan")
 
@@ -224,9 +225,10 @@ class PSDGenerator:
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
             hide_axes=self.cfg.hide_axes,
+            save_fig=self.cfg.save_fig,
         )
 
-    def _get_max_clip(self, patch_sr_tuple):
+    def _get_max_clip(self, patch_sr_tuple, percentile):
         """Handle a single patch to the max value for colorbar clipping."""
         patch, sampling_rate = patch_sr_tuple
 
@@ -235,6 +237,7 @@ class PSDGenerator:
             self.cfg.min_freq,
             self.cfg.max_freq,
             sampling_rate,
+            percentile=percentile,
         )
 
     # ------------------------------------------------------------------ #
