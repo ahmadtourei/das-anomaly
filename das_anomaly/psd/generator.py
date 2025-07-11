@@ -110,7 +110,7 @@ class PSDGenerator:
         value for clipping colorbar.
         """
         values: list[float] = []
-        for patch in self._iter_patches():
+        for patch in self._iter_patches(select_time=False):
             val = self._get_max_clip(patch)
             values.append(val)
         return float(np.mean(values)) if values else float("nan")
@@ -118,17 +118,20 @@ class PSDGenerator:
     # --------------------------------------------------------------------- #
     # Internals
     # --------------------------------------------------------------------- #
-    def _iter_patches(self):
+    def _iter_patches(self, select_time=True):
         """Yield detrended strain-rate patches."""
         sp = dc.spool(self.cfg.data_path).update()
 
         patch0 = sp[0]
         sr = self._sampling_rate(patch0)
 
-        sub_sp = sp.select(
-            time=(self.cfg.t1, self.cfg.t2),
-            distance=self._distance_slice(patch0),
-        )
+        if select_time:
+            sub_sp = sp.select(
+                time=(self.cfg.t1, self.cfg.t2),
+                distance=self._distance_slice(patch0),
+            )
+        else:
+            sub_sp = sp
         # chunk into windowed sub-patches
         sub_sp_chunked = sub_sp.sort("time").chunk(
             time=self.cfg.time_window, overlap=self.cfg.time_overlap
