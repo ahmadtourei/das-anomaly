@@ -32,10 +32,10 @@ class _FakeMPIComm:
         self._size = size
 
     # mpi4py interface methods
-    def get_rank(self):
+    def Get_rank(self):
         return self._rank
 
-    def get_size(self):
+    def Get_size(self):
         return self._size
 
     def bcast(self, obj, root=0):

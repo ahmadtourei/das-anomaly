@@ -27,10 +27,10 @@ except:
     class _DummyComm:
         """Stand-in that mimics the tiny subset we use."""
 
-        def get_rank(self):
+        def Get_rank(self):
             return 0
 
-        def get_size(self):
+        def Get_size(self):
             return 1
 
         def bcast(self, obj, root=0):
@@ -170,8 +170,8 @@ class PSDGenerator:
         """
         # Initiate MPI
         comm = MPI.COMM_WORLD
-        rank = comm.get_rank()
-        size = comm.get_size()
+        rank = comm.Get_rank()
+        size = comm.Get_size()
 
         if rank == 0:
             sp = dc.spool(self.cfg.data_path).update()
