@@ -63,12 +63,12 @@ To ensure all PSD images share the same colorbar scale, determine an appropriate
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
 from das_anomaly.settings import SETTINGS
-from das_anomaly.utils import get_psd_max_clip
 
 # path to one or a few background noise data 
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
-clip_val = cfg.run_get_psd_val()
+gen = PSDGenerator(cfg)
+clip_val = gen.run_get_psd_val()
 print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
