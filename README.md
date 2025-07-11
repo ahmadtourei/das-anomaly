@@ -56,7 +56,7 @@ pip uninstall das_anomaly
 ## Instructions
 The main steps for using the package are as follows:
 1. Define constants: 
-Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc.
+Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below.
 2. Set a consistent upper bound for PSD amplitude values:
 To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes a suitable maximum amplitude from a selected TIME_WINDOW of background noise (anomaly-free) data.
 ### Example
