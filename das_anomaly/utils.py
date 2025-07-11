@@ -185,6 +185,8 @@ def plot_spec(
             vmin=clip_val_min,
             vmax=clip_val_max,
         )
+        # make y axis (freq) increasing
+        ax.invert_yaxis()
         # Hide the axes
         ax.axis("off")  # pragma: no cover
         # Hide the ticks
@@ -205,7 +207,8 @@ def plot_spec(
             vmin=clip_val_min,
             vmax=clip_val_max,
         )
-
+        # make y axis (freq) increasing
+        ax.invert_yaxis()
         # Format main plot
         ax.set_xlabel("Distance (m)", fontsize=20)
         ax.set_ylabel("Frequency (Hz)", fontsize=20)
