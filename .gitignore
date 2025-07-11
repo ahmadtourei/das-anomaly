@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 data/
+.ruff_cache/
+.DS_Store
 
 # Distribution / packaging
 .Python
