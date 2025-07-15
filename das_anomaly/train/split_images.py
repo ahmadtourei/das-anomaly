@@ -7,7 +7,7 @@ Randomly split PSD PNGs into *train* and *test* folders.
 Example
 -------
 >>> from das_anomaly.train import TrainSplitConfig, ImageSplitter
->>> cfg = TrainSplitConfig(num_images=400, ratio=0.2)
+>>> cfg = TrainSplitConfig()
 >>> ImageSplitter(cfg).run()
 """
 
@@ -68,8 +68,8 @@ class ImageSplitter:
         test_img_dir.mkdir(parents=True, exist_ok=True)
 
         # copy
-        self._copy_all(train, self.cfg.train_dir)
-        self._copy_all(test, self.cfg.test_dir)
+        self._copy_all(train, train_img_dir)
+        self._copy_all(test, test_img_dir)
 
     # ------------------------------------------------------------------ #
     # helpers
@@ -85,7 +85,7 @@ class ImageSplitter:
         selected = rng.sample(pngs, self.cfg.num_images)
 
         n_test = int(self.cfg.num_images * self.cfg.ratio)
-        return selected[:-n_test], selected[-n_test:]
+        return selected[:-n_test], selected[self.cfg.num_images - n_test :]
 
     @staticmethod
     def _copy_all(files: Sequence[Path], dest: Path) -> None:

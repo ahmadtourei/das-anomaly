@@ -58,7 +58,7 @@ The main steps for using the package are as follows:
 1. Define constants: 
 Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below.
 2. Set a consistent upper bound for PSD amplitude values:
-To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes a suitable maximum amplitude from a selected TIME_WINDOW of background noise (anomaly-free) data.
+To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes the mean value of maximum amplitude from TIME_WINDOWs of the data which does not include drastic anomalies (therefore, a quick exploratory data analysis is needed here.)
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -68,7 +68,7 @@ from das_anomaly.settings import SETTINGS
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
 gen = PSDGenerator(cfg)
-percentile = 95
+percentile = 90
 clip_val = gen.run_get_psd_val(percentile=percentile)
 print(f"Mean {percentile}-percentile amplitude across all patches: {clip_val:.3e}")
 ```

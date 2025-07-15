@@ -54,8 +54,13 @@ def test_run_copies_files(cfg, monkeypatch):
     with patch("das_anomaly.train.split_images.shutil.copy", side_effect=fake_copy):
         ImageSplitter(cfg).run()
 
+    train_img_dir = (cfg.train_dir / "images").resolve()
+    test_img_dir = (cfg.test_dir / "images").resolve()
+    train_img_dir.mkdir(parents=True, exist_ok=True)
+    test_img_dir.mkdir(parents=True, exist_ok=True)
+
     # 10 images copied in total
     assert len(copier_calls) == 10
     # first 7 to train_dir, last 3 to test_dir (order from _pick_files)
-    assert all(dest == cfg.train_dir for _, dest in copier_calls[:7])
-    assert all(dest == cfg.test_dir for _, dest in copier_calls[7:])
+    assert all(dest == train_img_dir for _, dest in copier_calls[:7])
+    assert all(dest == test_img_dir for _, dest in copier_calls[7:])
