@@ -30,6 +30,7 @@ class TrainSplitConfig:
     psd_dir: Path | str = SETTINGS.PSD_PATH
     train_dir: Path | str = SETTINGS.TRAIN_IMAGES_PATH
     test_dir: Path | str = SETTINGS.TEST_IMAGES_PATH
+    anomaly_dir: Path | str = SETTINGS.ANOMALY_IMAGES_PATH
 
     # sampling parameters
     num_images: int = SETTINGS.NUM_IMAGE
@@ -41,9 +42,11 @@ class TrainSplitConfig:
         self.psd_dir = Path(self.psd_dir).expanduser()
         self.train_dir = Path(self.train_dir).expanduser()
         self.test_dir = Path(self.test_dir).expanduser()
+        self.anomaly_dir = Path(self.anomaly_dir).expanduser()
 
         self.train_dir.mkdir(parents=True, exist_ok=True)
         self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.anomaly_dir.mkdir(parents=True, exist_ok=True)
 
 
 class ImageSplitter:
@@ -64,8 +67,10 @@ class ImageSplitter:
         # make …/images/ sub-dirs once
         train_img_dir = (self.cfg.train_dir / "images").resolve()
         test_img_dir = (self.cfg.test_dir / "images").resolve()
+        anomaly_img_dir = (self.cfg.anomaly_dir / "images").resolve()
         train_img_dir.mkdir(parents=True, exist_ok=True)
         test_img_dir.mkdir(parents=True, exist_ok=True)
+        anomaly_img_dir.mkdir(parents=True, exist_ok=True)
 
         # copy
         self._copy_all(train, train_img_dir)
