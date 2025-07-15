@@ -54,8 +54,8 @@ class ImageSplitter:
 
     def __init__(self, cfg: TrainSplitConfig):
         self.cfg = cfg
-        if self.cfg.ratio <= 0 or self.cfg.ratio >= 1:
-            raise ValueError("ratio must be 0 < ratio < 1")
+        if self.cfg.ratio < 0 or self.cfg.ratio > 1:
+            raise ValueError("ratio must be 0 <= ratio <= 1")
 
     # ------------------------------------------------------------------ #
     # public API
@@ -90,7 +90,13 @@ class ImageSplitter:
         selected = rng.sample(pngs, self.cfg.num_images)
 
         n_test = int(self.cfg.num_images * self.cfg.ratio)
-        return selected[:-n_test], selected[self.cfg.num_images - n_test :]
+        # train / test lists that also handle the edge-cases ratio == 0 or 1
+        if n_test == 0:  # 100 % train, 0 % test
+            return selected, []
+        elif n_test == self.cfg.num_images:  # 0 % train, 100 % test
+            return [], selected
+        else:  # 0 < ratio < 1
+            return selected[:-n_test], selected[-n_test:]
 
     @staticmethod
     def _copy_all(files: Sequence[Path], dest: Path) -> None:
