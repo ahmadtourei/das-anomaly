@@ -14,6 +14,7 @@ develop-eggs/
 dist/
 downloads/
 examples/data/
+examples/exclude_known_events_from_training/events.csv
 eggs/
 .eggs/
 lib/

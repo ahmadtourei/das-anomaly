@@ -36,7 +36,7 @@ class TrainSplitConfig:
     num_images: int = SETTINGS.NUM_IMAGE
     ratio: float = SETTINGS.RATIO
 
-    rng_seed: int | None = 42  # reproducible splits
+    rng_seed: int | None = 42 * num_images  # reproducible splits
 
     def __post_init__(self):
         self.psd_dir = Path(self.psd_dir).expanduser()

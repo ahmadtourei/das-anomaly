@@ -2,7 +2,7 @@
 User configuration for the DAS-anomaly pipeline
 ----------------------------------------------------
 
-Only edit this file to define every pre-processing, PSD plotting, and
+modify this file to define every pre-processing, PSD plotting, and
 autoencoder training hyper-parameters parameters as well as the right data locations.
 """
 
