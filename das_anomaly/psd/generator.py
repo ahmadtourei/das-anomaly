@@ -102,8 +102,12 @@ class PSDGenerator:
         Entry point - iterate over patches using MPI and produce PSD plots.
         Each patch is assigned to one MPI rank (i.e., processor).
         """
-        for patch in self._iter_patches_parallel():
-            self._plot_patch(patch)
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+        for patch in self._iter_patches_parallel(rank=rank, size=size):
+            # Initiate MPI
+            self._plot_patch(patch, rank=rank, mpi=True)
 
     def run_get_psd_val(self, percentile=95) -> None:
         """
@@ -121,24 +125,29 @@ class PSDGenerator:
     # --------------------------------------------------------------------- #
     def _iter_patches(self, select_time=True):
         """Yield detrended strain-rate patches."""
-        sp = dc.spool(self.cfg.data_path).update()
+        data_path = self.cfg.data_path
+        sp = dc.spool(data_path).update()
 
         patch0 = sp[0]
         sr = self._sampling_rate(patch0)
 
         if select_time:
-            sub_sp = sp.select(
-                time=(self.cfg.t1, self.cfg.t2),
-                distance=self._distance_slice(patch0),
+            sub_sp_time = sp.select(time=(self.cfg.t1, self.cfg.t2))
+            sub_sp_time_distance = sub_sp_time.select(
+                distance=(self._distance_slice(sub_sp_time[0]))
             )
+            sub_sp = sub_sp_time_distance
         else:
-            sub_sp = sp
+            sub_sp_distance = sp.select(distance=(self._distance_slice(sp[0])))
+            sub_sp = sub_sp_time_distance
         # chunk into windowed sub-patches
         sub_sp_chunked = sub_sp.sort("time").chunk(
             time=self.cfg.time_window, overlap=self.cfg.time_overlap
         )
         if len(sub_sp_chunked) == 0:
-            raise ValueError("No patch of DAS data found within data path: %s")
+            raise ValueError(
+                f"No patch of DAS data found within data path: {data_path}"
+            )
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
             if self.cfg.data_unit == "velocity":
@@ -159,69 +168,70 @@ class PSDGenerator:
                     "Expected 'velocity' or 'strain_rate'."
                 )
 
-    def _iter_patches_parallel(self, flag: bool = True):
+    def _iter_patches_parallel(self, rank, size):
         """
         Yield detrended strain-rate patches in an MPI-friendly round-robin.
-
-        Parameters
-        ----------
-        flag : bool, default ``True``
-            If *True*, each rank prints which patch number they are working on.
-            Set to *False* to silence these progress messages.
         """
-        # Initiate MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
-
         if rank == 0:
-            sp = dc.spool(self.cfg.data_path).update()
+            data_path = self.cfg.data_path
+            sp = dc.spool(data_path).update()
 
-            patch0 = sp[0]
-            sr = self._sampling_rate(patch0)
-
-            sub_sp = sp.select(
-                time=(self.cfg.t1, self.cfg.t2),
-                distance=self._distance_slice(patch0),
+            sub_sp_time = sp.select(time=(self.cfg.t1, self.cfg.t2))
+            sub_sp_time_distance = sub_sp_time.select(
+                distance=(self._distance_slice(sub_sp_time[0]))
             )
 
-            sub_sp_chunked = sub_sp.sort("time").chunk(
+            sub_sp_chunked = sub_sp_time_distance.sort("time").chunk(
                 time=self.cfg.time_window, overlap=self.cfg.time_overlap
             )
             if len(sub_sp_chunked) == 0:
-                raise ValueError("No patch of DAS data found within data path: %s")
+                raise ValueError(
+                    f"No patch of DAS data found within data path: {data_path}"
+                )
         else:
-            sub_sp_chunked = sr = None
-
+            sub_sp_chunked = None
         # broadcast the variables to other ranks
-        sub_sp_chunked = comm.bcast(sub_sp_chunked, root=0)
-        sr = comm.bcast(sr, root=0)
+        sub_sp_chunked = MPI.COMM_WORLD.bcast(sub_sp_chunked, root=0)
 
         # chunk into windowed sub-patches
         for i in range(rank, len(sub_sp_chunked), size):
-            if flag:
-                pass
             patch = sub_sp_chunked[i]
-            yield (
-                patch.velocity_to_strain_rate_edgeless(
-                    step_multiple=self.cfg.step_multiple
-                ).detrend("time"),
-                sr,
-            )
+            sr = self._sampling_rate(patch)
+            if self.cfg.data_unit == "velocity":
+                yield (
+                    patch.velocity_to_strain_rate_edgeless(
+                        step_multiple=self.cfg.step_multiple
+                    ).detrend("time"),
+                    sr,
+                )
+            elif self.cfg.data_unit == "strain_rate":
+                yield (
+                    patch.detrend("time"),
+                    sr,
+                )
+            else:
+                raise ValueError(
+                    "Unsupported data_unit: {data_unit!r}. "
+                    "Expected 'velocity' or 'strain_rate'."
+                )
 
-    def _plot_patch(self, patch_sr_tuple):
+    def _plot_patch(self, patch_sr_tuple, rank=0, mpi=False):
         """Handle a single patch to PSD plot."""
         patch, sampling_rate = patch_sr_tuple
 
         title = patch.get_patch_name()
 
+        if mpi:
+            output_rank = rank
+        else:
+            output_rank = 0
         plot_spec(
             patch,
             self.cfg.min_freq,
             self.cfg.max_freq,
             sampling_rate,
             title,
-            output_rank=0,  # keeps MPI + serial use happy
+            output_rank=output_rank,  # keeps MPI + serial use happy
             fig_path=self.cfg.psd_path,
             dpi=self.cfg.dpi,
             hide_axes=self.cfg.hide_axes,
