@@ -55,21 +55,34 @@ pip uninstall das_anomaly
 
 ## Instructions
 The main steps for using the package are as follows:
-1. Define constants: 
-Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc.
+1. Define constants and create a Spool of data: 
+Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below.
+
+Then, using DASCore, create an index file for the spool of data first time reading the DAS data directory:
+### Example
+```python
+import dascore as dc
+from das_anomaly.settings import SETTINGS
+
+data_path = SETTINGS.DATA_PATH
+
+# Update will create an index of the contents for fast querying/access
+spool = dc.spool(directory_path).update()
+``` 
 2. Set a consistent upper bound for PSD amplitude values:
-To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes a suitable maximum amplitude from a selected TIME_WINDOW of background noise (anomaly-free) data.
+To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes the mean value of maximum amplitude from TIME_WINDOWs of the data which does not include drastic anomalies (therefore, a quick exploratory data analysis is needed here.)
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
 from das_anomaly.settings import SETTINGS
-from das_anomaly.utils import get_psd_max_clip
 
 # path to one or a few background noise data 
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
-clip_val = gen.run_get_psd_val()
-print(f"Mean 95-percentile amplitude across all patches: {clip_val:.3e}")
+gen = PSDGenerator(cfg)
+percentile = 90
+clip_val = gen.run_get_psd_val(percentile=percentile)
+print(f"Mean {percentile}-percentile amplitude across all patches: {clip_val:.3e}")
 ```
 3. Generate PSD plots: 
 Use the `das_anomaly.psd` module and create PSD plots in RGB format and in plain mode (with no axes or colorbar). The `das_anomaly.psd.PSDGenerator reads DAS data, creates a spool using DASCore library, applies a detrend function to each patch of the chunked spool, and then average the energy over a desired time window and stack all channels together to create a spatial PSD with channels on the X-axis and frequency on the Y-axis. You can use MPI to distribute reading data and plotting PSDs over CPUs. 
@@ -112,7 +125,7 @@ ImageSplitter(cfg).run()
 cfg = TrainAEConfig()
 AutoencoderTrainer(cfg).run()
 ```
-Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
+Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must ensure the training and testing datasets do not include anomalies. If you have an excel sheet with time stamp of anomalies, use "exclude_known_events_from_training" in examples directory to exclude them. Or, manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
 
 6. Test and set a threshold: 
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Then, make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 

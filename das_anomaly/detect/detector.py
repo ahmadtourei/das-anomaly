@@ -36,10 +36,10 @@ except:
     class _DummyComm:
         """Stand-in that mimics the tiny subset we use."""
 
-        def get_rank(self):
+        def Get_rank(self):
             return 0
 
-        def get_size(self):
+        def Get_size(self):
             return 1
 
         def bcast(self, obj, root=0):
@@ -131,8 +131,8 @@ class AnomalyDetector:
     def run_parallel(self) -> None:
         """Score PSD PNGs in parallel (one folder per MPI rank)."""
         comm = MPI.COMM_WORLD
-        rank = comm.get_rank()
-        world_size = comm.get_size()
+        rank = comm.Get_rank()
+        world_size = comm.Get_size()
 
         # Materialise sub-folders once for every rank
         subdirs: list[Path] = [p for p in self.cfg.psd_path.iterdir() if p.is_dir()]

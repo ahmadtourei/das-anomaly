@@ -99,7 +99,7 @@ def encoder(size):
     return model
 
 
-def get_psd_max_clip(patch_strain, min_freq, max_freq, sampling_rate, percentile=95):
+def get_psd_max_clip(patch_strain, min_freq, max_freq, sampling_rate, percentile):
     """
     Return the given percentile of the data in frequency domain.
     This value serve as a the upper bound of the colorbar for PSD
@@ -117,9 +117,7 @@ def get_psd_max_clip(patch_strain, min_freq, max_freq, sampling_rate, percentile
     min_frq_idx = int(min_freq / hz_per_bin)
     max_frq_idx = int(max_freq / hz_per_bin)
 
-    clip_val_max = np.percentile(
-        np.absolute(amplitude_spec[min_frq_idx:max_frq_idx, :]), percentile
-    )
+    clip_val_max = np.percentile(amplitude_spec[min_frq_idx:max_frq_idx, :], percentile)
     return clip_val_max
 
 
@@ -133,6 +131,7 @@ def plot_spec(
     fig_path,
     dpi,
     hide_axes=True,
+    save_fig=True,
 ):
     """Save the power spectral density (Channel-Frequency-Amplitude) plot."""
     # Get the data
@@ -186,6 +185,8 @@ def plot_spec(
             vmin=clip_val_min,
             vmax=clip_val_max,
         )
+        # make y axis (freq) increasing
+        ax.invert_yaxis()
         # Hide the axes
         ax.axis("off")  # pragma: no cover
         # Hide the ticks
@@ -206,7 +207,8 @@ def plot_spec(
             vmin=clip_val_min,
             vmax=clip_val_max,
         )
-
+        # make y axis (freq) increasing
+        ax.invert_yaxis()
         # Format main plot
         ax.set_xlabel("Distance (m)", fontsize=20)
         ax.set_ylabel("Frequency (Hz)", fontsize=20)
@@ -234,8 +236,8 @@ def plot_spec(
         ax.set_ylabel("Frequency (Hz)", fontsize=32)
 
         # Increase tick label size and thickness
-        ax.tick_params(axis="both", which="major", labelsize=28, width=2.5, length=8)
-        ax.tick_params(axis="both", which="minor", labelsize=28, width=2, length=5)
+        ax.tick_params(axis="both", which="major", labelsize=22, width=2.5, length=8)
+        ax.tick_params(axis="both", which="minor", labelsize=22, width=2, length=5)
 
         # Increase thickness of axis lines
         ax.spines["top"].set_linewidth(2.5)
@@ -243,13 +245,16 @@ def plot_spec(
         ax.spines["left"].set_linewidth(2.5)
         ax.spines["right"].set_linewidth(2.5)
 
-    # save figure
-    fig_path_ranks = os.path.join(fig_path, "rank_" + str(output_rank))
-    # Check if the directory does not exist
-    if not os.path.exists(fig_path_ranks):
-        # Create the directory
-        os.makedirs(fig_path_ranks)
-    plt.savefig(os.path.join(fig_path_ranks, f"{title}.png"), dpi=dpi)
+    if save_fig:
+        # save figure
+        fig_path_ranks = os.path.join(fig_path, "rank_" + str(output_rank))
+        # Check if the directory does not exist
+        if not os.path.exists(fig_path_ranks):
+            # Create the directory
+            os.makedirs(fig_path_ranks)
+        plt.savefig(os.path.join(fig_path_ranks, f"{title}.png"), dpi=dpi)
+    else:
+        plt.show()
     plt.close("all")
 
 

@@ -7,7 +7,7 @@ Randomly split PSD PNGs into *train* and *test* folders.
 Example
 -------
 >>> from das_anomaly.train import TrainSplitConfig, ImageSplitter
->>> cfg = TrainSplitConfig(num_images=400, ratio=0.2)
+>>> cfg = TrainSplitConfig()
 >>> ImageSplitter(cfg).run()
 """
 
@@ -30,20 +30,23 @@ class TrainSplitConfig:
     psd_dir: Path | str = SETTINGS.PSD_PATH
     train_dir: Path | str = SETTINGS.TRAIN_IMAGES_PATH
     test_dir: Path | str = SETTINGS.TEST_IMAGES_PATH
+    anomaly_dir: Path | str = SETTINGS.ANOMALY_IMAGES_PATH
 
     # sampling parameters
     num_images: int = SETTINGS.NUM_IMAGE
     ratio: float = SETTINGS.RATIO
 
-    rng_seed: int | None = 42  # reproducible splits
+    rng_seed: int | None = 42 * num_images  # reproducible splits
 
     def __post_init__(self):
         self.psd_dir = Path(self.psd_dir).expanduser()
         self.train_dir = Path(self.train_dir).expanduser()
         self.test_dir = Path(self.test_dir).expanduser()
+        self.anomaly_dir = Path(self.anomaly_dir).expanduser()
 
         self.train_dir.mkdir(parents=True, exist_ok=True)
         self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.anomaly_dir.mkdir(parents=True, exist_ok=True)
 
 
 class ImageSplitter:
@@ -51,8 +54,8 @@ class ImageSplitter:
 
     def __init__(self, cfg: TrainSplitConfig):
         self.cfg = cfg
-        if self.cfg.ratio <= 0 or self.cfg.ratio >= 1:
-            raise ValueError("ratio must be 0 < ratio < 1")
+        if self.cfg.ratio < 0 or self.cfg.ratio > 1:
+            raise ValueError("ratio must be 0 <= ratio <= 1")
 
     # ------------------------------------------------------------------ #
     # public API
@@ -64,12 +67,14 @@ class ImageSplitter:
         # make …/images/ sub-dirs once
         train_img_dir = (self.cfg.train_dir / "images").resolve()
         test_img_dir = (self.cfg.test_dir / "images").resolve()
+        anomaly_img_dir = (self.cfg.anomaly_dir / "images").resolve()
         train_img_dir.mkdir(parents=True, exist_ok=True)
         test_img_dir.mkdir(parents=True, exist_ok=True)
+        anomaly_img_dir.mkdir(parents=True, exist_ok=True)
 
         # copy
-        self._copy_all(train, self.cfg.train_dir)
-        self._copy_all(test, self.cfg.test_dir)
+        self._copy_all(train, train_img_dir)
+        self._copy_all(test, test_img_dir)
 
     # ------------------------------------------------------------------ #
     # helpers
@@ -85,7 +90,13 @@ class ImageSplitter:
         selected = rng.sample(pngs, self.cfg.num_images)
 
         n_test = int(self.cfg.num_images * self.cfg.ratio)
-        return selected[:-n_test], selected[-n_test:]
+        # train / test lists that also handle the edge-cases ratio == 0 or 1
+        if n_test == 0:  # 100 % train, 0 % test
+            return selected, []
+        elif n_test == self.cfg.num_images:  # 0 % train, 100 % test
+            return [], selected
+        else:  # 0 < ratio < 1
+            return selected[:-n_test], selected[-n_test:]
 
     @staticmethod
     def _copy_all(files: Sequence[Path], dest: Path) -> None:

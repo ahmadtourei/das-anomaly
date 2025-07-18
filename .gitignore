@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 data/
+.ruff_cache/
+.DS_Store
 
 # Distribution / packaging
 .Python
@@ -12,6 +14,7 @@ develop-eggs/
 dist/
 downloads/
 examples/data/
+examples/exclude_known_events_from_training/events.csv
 eggs/
 .eggs/
 lib/
