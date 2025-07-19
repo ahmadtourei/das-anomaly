@@ -155,4 +155,5 @@ Still under development. Use with caution.
 
 ## Contact
 Ahmad Tourei, Colorado School of Mines
+
 tourei@mines.edu | ahmadtourei@gmail.com
