@@ -114,6 +114,8 @@ class PSDGenerator:
         Entry point - iterate over patches and get the mean value of max
         value for clipping colorbar.
         """
+        # unlink any previous index file for spool of BN_DATA_PATH
+        _ = dc.spool(self.cfg.data_path).indexer.index_path.unlink()
         values: list[float] = []
         for patch in self._iter_patches(select_time=False):
             val = self._get_max_clip(patch, percentile=percentile)
@@ -136,7 +138,7 @@ class PSDGenerator:
             sub_sp = sub_sp_time_distance
         else:
             sub_sp_distance = sp.select(distance=(self._distance_slice(sp[0])))
-            sub_sp = sub_sp_time_distance
+            sub_sp = sub_sp_distance
         # chunk into windowed sub-patches
         sub_sp_chunked = sub_sp.sort("time").chunk(
             time=self.cfg.time_window, overlap=self.cfg.time_overlap
