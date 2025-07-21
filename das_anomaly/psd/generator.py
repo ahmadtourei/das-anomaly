@@ -128,9 +128,6 @@ class PSDGenerator:
         data_path = self.cfg.data_path
         sp = dc.spool(data_path).update()
 
-        patch0 = sp[0]
-        sr = self._sampling_rate(patch0)
-
         if select_time:
             sub_sp_time = sp.select(time=(self.cfg.t1, self.cfg.t2))
             sub_sp_time_distance = sub_sp_time.select(
@@ -150,6 +147,7 @@ class PSDGenerator:
             )
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
+            sr = self._sampling_rate(patch)
             if self.cfg.data_unit == "velocity":
                 yield (
                     patch.velocity_to_strain_rate_edgeless(
