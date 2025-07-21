@@ -9,7 +9,8 @@ Example
 -------
 >>> from das_anomaly.count.counter import CounterConfig, AnomalyCounter
 >>> cfg = CounterConfig(keyword="anomaly")
->>> AnomalyCounter(cfg).run()
+>>> anomalies = AnomalyCounter(cfg).run()
+>>> print(anomalies)
 """
 
 from __future__ import annotations

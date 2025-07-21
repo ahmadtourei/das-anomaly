@@ -147,7 +147,8 @@ AnomalyDetector(cfg).run_parallel()
 
 # count number of anomalies
 cfg = CounterConfig(keyword="anomaly")
-AnomalyCounter(cfg).run() # prints info on number of anomalies and path to them
+anomalies = AnomalyCounter(cfg).run() 
+print(anomalies) # prints info on number of anomalies and path to them
 ```
 
 ## Note
