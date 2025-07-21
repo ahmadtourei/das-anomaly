@@ -269,6 +269,9 @@ class PSDGenerator:
             t = patch.coords["time"]
             time_step = (t.max() - t.min()) / (len(t) - 1)
             dt_seconds = float(time_step / np.timedelta64(1, "s"))
+        else:
+            # Assume time_Step is already an int or float in seconds
+            dt_seconds = float(time_step)
 
         if dt_seconds == 0:
             raise ValueError("Time step is zero; cannot compute sampling rate.")
