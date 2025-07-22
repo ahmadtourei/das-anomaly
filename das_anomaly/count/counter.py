@@ -8,8 +8,9 @@ Count how many lines in the *results* folder contain the keyword
 Example
 -------
 >>> from das_anomaly.count.counter import CounterConfig, AnomalyCounter
->>> total = AnomalyCounter(CounterConfig(keyword="anomaly")).run()
->>> print(total)
+>>> cfg = CounterConfig(keyword="anomaly")
+>>> anomalies = AnomalyCounter(cfg).run()
+>>> print(anomalies)
 """
 
 from __future__ import annotations

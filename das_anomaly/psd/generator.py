@@ -114,6 +114,8 @@ class PSDGenerator:
         Entry point - iterate over patches and get the mean value of max
         value for clipping colorbar.
         """
+        # unlink any previous index file for spool of BN_DATA_PATH
+        _ = dc.spool(self.cfg.data_path).indexer.index_path.unlink()
         values: list[float] = []
         for patch in self._iter_patches(select_time=False):
             val = self._get_max_clip(patch, percentile=percentile)
@@ -128,9 +130,6 @@ class PSDGenerator:
         data_path = self.cfg.data_path
         sp = dc.spool(data_path).update()
 
-        patch0 = sp[0]
-        sr = self._sampling_rate(patch0)
-
         if select_time:
             sub_sp_time = sp.select(time=(self.cfg.t1, self.cfg.t2))
             sub_sp_time_distance = sub_sp_time.select(
@@ -139,7 +138,7 @@ class PSDGenerator:
             sub_sp = sub_sp_time_distance
         else:
             sub_sp_distance = sp.select(distance=(self._distance_slice(sp[0])))
-            sub_sp = sub_sp_time_distance
+            sub_sp = sub_sp_distance
         # chunk into windowed sub-patches
         sub_sp_chunked = sub_sp.sort("time").chunk(
             time=self.cfg.time_window, overlap=self.cfg.time_overlap
@@ -150,6 +149,7 @@ class PSDGenerator:
             )
         # iterate over patches and perform preprocessing
         for patch in sub_sp_chunked:
+            sr = self._sampling_rate(patch)
             if self.cfg.data_unit == "velocity":
                 yield (
                     patch.velocity_to_strain_rate_edgeless(
@@ -263,11 +263,16 @@ class PSDGenerator:
         """
         time_step = patch.coords.step("time")
 
-        # timedelta64  ➜  seconds as float
         if isinstance(time_step, np.timedelta64):
+            # timedelta64  ➜  seconds as float
             dt_seconds = time_step / np.timedelta64(1, "s")
+        elif time_step is None:
+            # infer ∆t from the time coordinate
+            t = patch.coords["time"]
+            time_step = (t.max() - t.min()) / (len(t) - 1)
+            dt_seconds = float(time_step / np.timedelta64(1, "s"))
         else:
-            # assume numeric seconds (int, float, or numpy scalar)
+            # Assume time_Step is already an int or float in seconds
             dt_seconds = float(time_step)
 
         if dt_seconds == 0:

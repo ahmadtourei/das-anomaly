@@ -58,7 +58,7 @@ The main steps for using the package are as follows:
 1. Define constants and create a Spool of data: 
 Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below.
 
-Then, using DASCore, create an index file for the spool of data first time reading the DAS data directory:
+Then, using DASCore, create an index file for the [spool](https://dascore.org/tutorial/spool.html) of data first time reading the DAS data directory:
 ### Example
 ```python
 import dascore as dc
@@ -69,6 +69,8 @@ data_path = SETTINGS.DATA_PATH
 # Update will create an index of the contents for fast querying/access
 spool = dc.spool(directory_path).update()
 ``` 
+Note: Creating the spool for the first time may take some time if your directory contains hundreds of gigabytes or terabytes of DAS data. However, DASCore creates an index file, allowing it to quickly query the directory on subsequent accesses.
+
 2. Set a consistent upper bound for PSD amplitude values:
 To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes the mean value of maximum amplitude from TIME_WINDOWs of the data which does not include drastic anomalies (therefore, a quick exploratory data analysis is needed here.)
 ### Example
@@ -145,7 +147,8 @@ AnomalyDetector(cfg).run_parallel()
 
 # count number of anomalies
 cfg = CounterConfig(keyword="anomaly")
-AnomalyCounter(cfg).run() # prints info on number of anomalies and path to them
+anomalies = AnomalyCounter(cfg).run() 
+print(anomalies) # prints info on number of anomalies and path to them
 ```
 
 ## Note
@@ -153,4 +156,5 @@ Still under development. Use with caution.
 
 ## Contact
 Ahmad Tourei, Colorado School of Mines
+
 tourei@mines.edu | ahmadtourei@gmail.com
