@@ -18,6 +18,8 @@ T_2 = "2022-12-08 00:00:00"
 
 # Size of the input/output images
 SIZE = 128
+# Number of layers in the encoder (and the symmetric decoder)
+LAYERS = 3
 # Batch size for the train generator
 BATCH_SIZE = 64
 # Desired density threshold based on density score

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import string
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,16 +45,49 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     return out
 
 
-def decoder(model: Sequential) -> Sequential:
-    """Imports decoder model."""
-    model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
-    model.add(UpSampling2D((2, 2)))
-    model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
-    model.add(UpSampling2D((2, 2)))
-    model.add(Conv2D(64, (3, 3), activation="relu", padding="same"))
-    model.add(UpSampling2D((2, 2)))
+def decoder(
+    model: Sequential,
+    *,
+    output_channels: int = 3,
+    conv_activation: str = "relu",
+    final_activation: str = "sigmoid",
+) -> Sequential:
+    """
+    Extend `encoder` with a decoder that mirrors its Conv2D + MaxPooling blocks.
 
-    model.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same"))
+    Parameters
+    ----------
+    model : keras.Sequential (the encoder)
+        A stack of Conv2D → MaxPooling2D blocks (built with `encoder()`).
+    output_channels : int, default=3
+        Number of channels in the reconstructed image (e.g. 3 for RGB).
+    conv_activation : str, default="relu"
+        Activation used in decoder Conv2D layers.
+    final_activation : str, default="sigmoid"
+        Activation of the final reconstruction layer.
+
+    Returns
+    -------
+    autoencoder : keras.Sequential
+        The same object you passed in, now containing the full encoder-decoder.
+    """
+    # Collect the filter sizes from the encoder’s Conv2D layers
+    conv_filters = [
+        layer.filters for layer in model.layers if isinstance(layer, Conv2D)
+    ]
+
+    if not conv_filters:
+        raise ValueError("Encoder must contain Conv2D layers.")
+
+    # Mirror them (e.g. [64, 32, 16]  →  [16, 32, 64])
+    for filt in conv_filters[::-1]:
+        model.add(Conv2D(filt, (3, 3), activation=conv_activation, padding="same"))
+        model.add(UpSampling2D((2, 2)))
+
+    # Final pixel-space reconstruction layer
+    model.add(
+        Conv2D(output_channels, (3, 3), activation=final_activation, padding="same")
+    )
     return model
 
 
@@ -83,19 +117,61 @@ def density(encoder_model, batch_images, kde):
     return np.array(density_list)
 
 
-def encoder(size):
-    """Imports the encoder model."""
+def encoder(
+    size: int,
+    num_layers: Literal[2, 3, 4, 5] = 3,
+    *,
+    start_filters: int = 64,
+    filters_halve_every_layer: bool = True,
+    activation: str = "relu",
+) -> Sequential:
+    """
+    Build a simple CNN encoder.
+
+    Parameters
+    ----------
+    size : int
+        Input (height = width) in pixels. Input shape = (size, size, 3).
+    num_layers : {2, 3, 4, 5}, default=3
+        Number of Conv2D + MaxPooling2D blocks.
+    start_filters : int, default=64
+        Filters in the first Conv2D layer.
+    filters_halve_every_layer : bool, default=True
+        If True, filters //= 2 each block (e.g., 64→32→16…).
+        If False, every block uses `start_filters`.
+    activation : str, default="relu"
+        Activation function for Conv2D layers.
+
+    Returns
+    -------
+    model : keras.Sequential
+        The assembled encoder.
+    """
+    if not 2 <= num_layers <= 5:
+        raise ValueError("num_layers must be between 2 and 5.")
+
     model = Sequential()
+
+    filters = start_filters
+    # First block (needs input_shape)
     model.add(
         Conv2D(
-            64, (3, 3), activation="relu", padding="same", input_shape=(size, size, 3)
+            filters,
+            (3, 3),
+            activation=activation,
+            padding="same",
+            input_shape=(size, size, 3),
         )
     )
     model.add(MaxPooling2D((2, 2), padding="same"))
-    model.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
-    model.add(MaxPooling2D((2, 2), padding="same"))
-    model.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
-    model.add(MaxPooling2D((2, 2), padding="same"))
+
+    # Remaining blocks
+    for _ in range(1, num_layers):
+        if filters_halve_every_layer and filters > 4:
+            filters //= 2
+        model.add(Conv2D(filters, (3, 3), activation=activation, padding="same"))
+        model.add(MaxPooling2D((2, 2), padding="same"))
+
     return model
 
 
