@@ -40,6 +40,7 @@ class TrainAEConfig:
 
     # data & training parameters
     img_size: int = SETTINGS.SIZE
+    num_layers: int = SETTINGS.LAYERS
     batch_size: int = SETTINGS.BATCH_SIZE
     num_epoch: int = SETTINGS.NUM_EPOCH
 
@@ -112,12 +113,12 @@ class AutoencoderTrainer:
         model.compile(
             optimizer="adam",
             loss="mean_squared_error",
-            metrics=["mse"],
+            metrics=["mae"],  # mean absolute error
         )
         return model
 
     def _build_model(self):
-        enc = encoder(self.cfg.img_size)
+        enc = encoder(self.cfg.img_size, self.cfg.num_layers)
         dec = decoder(enc)
         return self._compile(dec)
 

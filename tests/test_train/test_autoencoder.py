@@ -12,6 +12,7 @@ def dummy_cfg(tmp_path):
         test_dir=tmp_path / "test",
         out_dir=tmp_path / "out",
         img_size=32,
+        num_layers=2,
         batch_size=2,
         num_epoch=1,
     )
@@ -27,7 +28,7 @@ def test_trainer_build_and_save(monkeypatch, dummy_cfg):
     fake_model.layers[0].save = MagicMock()
 
     monkeypatch.setattr(
-        "das_anomaly.train.autoencoder.encoder", lambda size: fake_model
+        "das_anomaly.train.autoencoder.encoder", lambda *args, **kwargs: fake_model
     )
     monkeypatch.setattr("das_anomaly.train.autoencoder.decoder", lambda model: model)
     monkeypatch.setattr(
@@ -63,7 +64,9 @@ def test_saved_files(tmp_path, monkeypatch):
     keras_model = MagicMock(name="Model")
     keras_model.fit.return_value.history = fake_hist
     keras_model.layers = [MagicMock(name="Encoder")]
-    monkeypatch.setattr("das_anomaly.train.autoencoder.encoder", lambda s: keras_model)
+    monkeypatch.setattr(
+        "das_anomaly.train.autoencoder.encoder", lambda *args, **kwargs: keras_model
+    )
     monkeypatch.setattr("das_anomaly.train.autoencoder.decoder", lambda m: m)
     monkeypatch.setattr(
         "das_anomaly.train.autoencoder.ImageDataGenerator",
