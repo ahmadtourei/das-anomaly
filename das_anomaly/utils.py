@@ -119,7 +119,6 @@ def density(encoder_model, batch_images, kde):
 def encoder(
     size: int,
     num_layers: int = 5,
-    *,
     start_filters: int = 64,
     filters_halve_every_layer: bool = True,
     activation: str = "relu",

@@ -115,7 +115,9 @@ class TestTrainer:
     def test_encoder_architecture(self):
         """encoder() returns 3*(Conv→Pool) stack and ends with 16 filters."""
         size = 32
-        enc: Sequential = encoder(size)
+        layers = 3
+        filters = 64
+        enc: Sequential = encoder(size, layers, filters)
 
         # layer order check: Conv, Pool, Conv, Pool, Conv, Pool
         types = [type(layer) for layer in enc.layers]
@@ -133,7 +135,10 @@ class TestTrainer:
         assert last_conv.filters == 16
 
     def test_decoder_appends_layers(self):
-        enc = encoder(32)
+        size = 32
+        layers = 3
+        filters = 64
+        enc = encoder(size, layers, filters)
         n_before = len(enc.layers)
 
         decoder(enc)
