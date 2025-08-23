@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import string
-from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -119,8 +118,7 @@ def density(encoder_model, batch_images, kde):
 
 def encoder(
     size: int,
-    num_layers: Literal[2, 3, 4, 5] = 3,
-    *,
+    num_layers: int = 5,
     start_filters: int = 64,
     filters_halve_every_layer: bool = True,
     activation: str = "relu",
@@ -132,7 +130,7 @@ def encoder(
     ----------
     size : int
         Input (height = width) in pixels. Input shape = (size, size, 3).
-    num_layers : {2, 3, 4, 5}, default=3
+    num_layers : int, default=3
         Number of Conv2D + MaxPooling2D blocks.
     start_filters : int, default=64
         Filters in the first Conv2D layer.
@@ -147,8 +145,10 @@ def encoder(
     model : keras.Sequential
         The assembled encoder.
     """
-    if not 2 <= num_layers <= 5:
-        raise ValueError("num_layers must be between 2 and 5.")
+    if start_filters / num_layers < 4:
+        raise ValueError(
+            "start_filters/num_layers must be greater than 4 (the number of filters for the last layer). Consider increasing number of filters or decreasing number of layers."
+        )
 
     model = Sequential()
 

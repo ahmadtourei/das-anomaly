@@ -41,6 +41,7 @@ class TrainAEConfig:
     # data & training parameters
     img_size: int = SETTINGS.SIZE
     num_layers: int = SETTINGS.LAYERS
+    start_filters: int = SETTINGS.FILTERS
     batch_size: int = SETTINGS.BATCH_SIZE
     num_epoch: int = SETTINGS.NUM_EPOCH
 
@@ -118,7 +119,7 @@ class AutoencoderTrainer:
         return model
 
     def _build_model(self):
-        enc = encoder(self.cfg.img_size, self.cfg.num_layers)
+        enc = encoder(self.cfg.img_size, self.cfg.num_layers, self.cfg.start_filters)
         dec = decoder(enc)
         return self._compile(dec)
 
