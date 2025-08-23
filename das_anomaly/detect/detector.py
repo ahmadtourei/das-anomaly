@@ -21,7 +21,7 @@ from pathlib import Path
 
 from keras.models import load_model
 from sklearn.neighbors import KernelDensity
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import InputLayer, UpSampling2D
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
@@ -188,29 +188,41 @@ class AnomalyDetector:
             class_mode="input",
         )
 
-    def _extract_encoder(self):
-        """Build a stand-alone encoder and copy weights from the trained model."""
-        size = self.cfg.size
+    def _extract_encoder(self) -> Sequential:
+        """
+        Recreate encoder as Sequential, then build once and copy weights.
+        """
         enc = Sequential()
-        enc.add(
-            Conv2D(
-                64,
-                (3, 3),
-                activation="relu",
-                padding="same",
-                input_shape=(size, size, 3),
+        src_layers = []
+        for layer in self.model.layers:
+            if isinstance(layer, UpSampling2D):
+                break
+            src_layers.append(layer)
+            if isinstance(layer, InputLayer):
+                # Keras 3: InputLayer may not have .output_shape
+                bis = getattr(layer, "batch_input_shape", None)
+                ish = getattr(layer, "input_shape", None)
+                in_shape = bis or ish or self.model.input_shape  # e.g., (None, H, W, C)
+                enc.add(InputLayer(input_shape=tuple(in_shape[1:])))
+            else:
+                enc.add(layer.__class__.from_config(layer.get_config()))
+
+        # Ensure it’s built so cloned layers have weights
+        input_shape = self.model.input_shape  # e.g., (None, H, W, C)
+        enc.build(input_shape)
+
+        # Now it’s safe to copy weights
+        # Align weight-bearing layers (skip InputLayer)
+        src_w = [l for l in src_layers if len(l.get_weights()) > 0]
+        dst_w = [l for l in enc.layers if len(l.get_weights()) > 0]
+        if len(src_w) != len(dst_w):
+            raise RuntimeError(
+                f"Mismatch in weight-bearing layers: src={len(src_w)} dst={len(dst_w)}"
             )
-        )
-        enc.layers[-1].set_weights(self.model.layers[0].get_weights())
 
-        enc.add(MaxPooling2D((2, 2), padding="same"))
-        enc.add(Conv2D(32, (3, 3), activation="relu", padding="same"))
-        enc.layers[-1].set_weights(self.model.layers[2].get_weights())
+        for s, d in zip(src_w, dst_w):
+            d.set_weights(s.get_weights())
 
-        enc.add(MaxPooling2D((2, 2), padding="same"))
-        enc.add(Conv2D(16, (3, 3), activation="relu", padding="same"))
-        enc.layers[-1].set_weights(self.model.layers[4].get_weights())
-        enc.add(MaxPooling2D((2, 2), padding="same"))
         return enc
 
     def _fit_kde(self):
