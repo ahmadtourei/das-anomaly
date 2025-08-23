@@ -6,8 +6,13 @@ from dascore.compat import random_state
 from dascore.core import Patch
 from dascore.io.core import read
 from dascore.utils.downloader import fetch
+from keras import Model
+from keras import layers as L
+from keras.layers import Conv2D as _Conv2D
 from PIL import Image
+from sklearn.neighbors import KernelDensity as SKKDE
 
+import das_anomaly.detect.detector as det_mod
 from das_anomaly.psd import PSDConfig
 
 
@@ -140,45 +145,40 @@ def _fake_sequential():
 
 @pytest.fixture
 def patched_tf(monkeypatch):
-    """
-    Patches for:
-      * keras.models.load_model
-      * tensorflow.keras.Sequential
-      * ImageDataGenerator
-      * sklearn.neighbors.KernelDensity
-    so detector tests run without heavy deps.
-    """
-    # fake trained AE returned by load_model
-    fake_model = _fake_sequential()
-    monkeypatch.setattr("das_anomaly.detect.detector.load_model", lambda p: fake_model)
+    size = 8
+    x_in = L.Input((size, size, 3), name="input")
+    x = L.Conv2D(8, 3, padding="same", activation="relu", name="conv1")(x_in)
+    x = L.MaxPooling2D(2, padding="same", name="pool1")(x)
+    x = L.Conv2D(4, 3, padding="same", activation="relu", name="conv2")(x)
+    x = L.MaxPooling2D(2, padding="same", name="pool2")(x)
+    x = L.UpSampling2D(2, name="up1")(x)  # decoder start
+    fake_model = Model(x_in, x, name="ae_tiny")
 
-    # ----- Sequential used by _extract_encoder
-    encoder_seq = _fake_sequential()
-    monkeypatch.setattr("das_anomaly.detect.detector.Sequential", lambda: encoder_seq)
+    # give source model some weights
+    for la in fake_model.layers:
+        if la.weights:
+            la.set_weights([np.ones_like(w) for w in la.get_weights()])
 
-    # ImageDataGenerator.flow_from_directory
-    flow = MagicMock(samples=4)  # four training images
-    idg = MagicMock(flow_from_directory=lambda *a, **k: flow)
-    monkeypatch.setattr(
-        "das_anomaly.detect.detector.ImageDataGenerator", lambda *a, **k: idg
-    )
+    # make your code load this model
+    monkeypatch.setattr(det_mod, "load_model", lambda path: fake_model)
 
-    # KernelDensity.fit capture
+    # mark when set_weights is called on cloned Conv2D layers
+    _orig_set = _Conv2D.set_weights
+
+    def _track_set(self, weights):
+        self._set_called = True
+        return _orig_set(self, weights)
+
+    monkeypatch.setattr(_Conv2D, "set_weights", _track_set, raising=False)
+
+    # capture KernelDensity.fit input shape <<<
     kde_fit_called = {}
+    _orig_kde_fit = SKKDE.fit
 
-    class FakeKDE:
-        def __init__(self, *a, **k):
-            pass
+    def _fit_and_log(self, X, y=None):
+        kde_fit_called["shape"] = getattr(X, "shape", None)
+        return _orig_kde_fit(self, X, y)
 
-        def fit(self, x):
-            kde_fit_called["shape"] = x.shape
-            return self
+    monkeypatch.setattr(SKKDE, "fit", _fit_and_log, raising=True)
 
-        def score_samples(self, x):
-            return np.array([0.9])
-
-    monkeypatch.setattr("das_anomaly.detect.detector.KernelDensity", FakeKDE)
-
-    return dict(
-        fake_model=fake_model, encoder_seq=encoder_seq, kde_fit_called=kde_fit_called
-    )
+    return {"fake_model": fake_model, "kde_fit_called": kde_fit_called}
