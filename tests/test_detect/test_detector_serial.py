@@ -47,10 +47,15 @@ class TestEncoderExtraction:
         )
         (cfg.trained_path / f"model_{cfg.size}.h5").touch()
 
-        _ = AnomalyDetector(cfg)
+        train_class = tmp_path / "classA"
+        train_class.mkdir()
+        for i in range(4):
+            _make_dummy_png(train_class / f"img_{i}.png")
+
+        det = AnomalyDetector(cfg)  # builds encoder via your unchanged _extract_encoder
         conv_layers = [
             la
-            for la in patched_tf["encoder_seq"].layers
+            for la in det.encoder.layers
             if getattr(la, "name", "").startswith("conv")
         ]
         assert any(getattr(la, "_set_called", False) for la in conv_layers)
@@ -65,8 +70,15 @@ class TestKDEFitting:
             results_path=tmp_path / "out",
             train_images_path=tmp_path,
             trained_path=tmp_path,
+            size=8,
         )
         (cfg.trained_path / f"model_{cfg.size}.h5").touch()
+        # ADD: provide 4 training PNGs under a subdir
+        train_class = tmp_path / "classA"
+        train_class.mkdir()
+        for i in range(4):
+            _make_dummy_png(train_class / f"img_{i}.png")
+
         _ = AnomalyDetector(cfg)
         assert patched_tf["kde_fit_called"]["shape"] == (4, 16)  # 4 imgs * 16 dims
 
@@ -124,6 +136,12 @@ class TestCLI:
         # touch dummy model
         (tmp_path / "out").mkdir(exist_ok=True, parents=True)
         (tmp_path / "model_8.h5").touch()
+
+        # ADD: ensure _fit_kde() finds images
+        train_class = tmp_path / "classA"
+        train_class.mkdir()
+        for i in range(4):
+            _make_dummy_png(train_class / f"img_{i}.png")
 
         monkeypatch.setattr(sys, "argv", ["detect-anomaly", "--config", str(cfg_file)])
         monkeypatch.setattr(AnomalyDetector, "run", lambda self: print("CLI OK"))  # noqa: T201
