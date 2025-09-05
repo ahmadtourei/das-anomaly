@@ -30,6 +30,16 @@ def _compile(model: tf.keras.Model) -> tf.keras.Model:
     return model
 
 
+def _unique_name(model, base):
+    used = {l.name for l in model.layers}
+    if base not in used:
+        return base
+    i = 1
+    while f"{base}_{i}" in used:
+        i += 1
+    return f"{base}_{i}"
+
+
 def check_if_anomaly(
     encoder_model, size, img_path, kde, density_threshold=None, mse_threshold=None
 ):
@@ -85,6 +95,7 @@ def decoder(
     ----------
     model : keras.Sequential (the encoder)
         A stack of Conv2D → MaxPooling2D blocks (built with `encoder()`).
+        The model at the end of encoding stage.
     output_channels : int, default=3
         Number of channels in the reconstructed image (e.g. 3 for RGB).
     conv_activation : str, default="relu"
@@ -107,12 +118,26 @@ def decoder(
 
     # Mirror them (e.g. [64, 32, 16]  →  [16, 32, 64])
     for filt in conv_filters[::-1]:
-        model.add(Conv2D(filt, (3, 3), activation=conv_activation, padding="same"))
-        model.add(UpSampling2D((2, 2)))
+        model.add(
+            Conv2D(
+                filt,
+                (3, 3),
+                activation=conv_activation,
+                padding="same",
+                name=_unique_name(model, "dec_conv"),
+            )
+        )
+        model.add(UpSampling2D((2, 2), name=_unique_name(model, "dec_up")))
 
     # Final pixel-space reconstruction layer
     model.add(
-        Conv2D(output_channels, (3, 3), activation=final_activation, padding="same")
+        Conv2D(
+            output_channels,
+            (3, 3),
+            activation=final_activation,
+            padding="same",
+            name=_unique_name(model, "dec_out"),
+        )
     )
     return model
 
