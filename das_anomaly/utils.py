@@ -10,6 +10,7 @@ import string
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fftpack as ft
+import tensorflow as tf
 from matplotlib import gridspec
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
@@ -19,7 +20,19 @@ from tensorflow.keras.models import Sequential
 from das_anomaly.settings import SETTINGS
 
 
-def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
+@staticmethod
+def _compile(model: tf.keras.Model) -> tf.keras.Model:
+    model.compile(
+        optimizer="adam",
+        loss="mean_squared_error",
+        metrics=["mae"],  # mean absolute error
+    )
+    return model
+
+
+def check_if_anomaly(
+    encoder_model, size, img_path, kde, density_threshold=None, mse_threshold=None
+):
     """Check whether the image is an anomaly"""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input
     encoder_output_shape = encoder_model.output_shape
@@ -35,13 +48,27 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     img = img[np.newaxis, :, :, :]
     encoded_img = encoder_model.predict([[img]], verbose=0)
     encoded_img = [np.reshape(img, (out_vector_shape)) for img in encoded_img]
-    density = kde.score_samples(encoded_img)[0]
+    log_density = kde.score_samples(encoded_img)[0]
 
-    if density < density_threshold:
-        out = "The image is an anomaly"
-    else:
-        out = "The image is normal"
-    return out
+    if mse_threshold is not None:
+        cloned_enc = tf.keras.models.clone_model(encoder_model)
+        cloned_enc.build(encoder_model.input_shape)
+        cloned_enc.set_weights(encoder_model.get_weights())
+        ae = decoder(cloned_enc)
+        ae_model_compiled = _compile(ae)
+
+        img_mse = np.asarray(img, dtype=np.float64)
+        if img_mse.ndim == 3:  # (H,W,C) -> (1,H,W,C)
+            img_mse = img_mse[None, ...]
+        assert img_mse.ndim == 4, f"Expected 4D (B,H,W,C), got {img_mse.shape}"
+
+        mse = ae_model_compiled.evaluate(img_mse, img_mse, batch_size=1)[0]
+    # --- criteria (ignore any None thresholds) ---
+    density_is_anom = (density_threshold is None) or (log_density < density_threshold)
+    mse_is_anom = (mse_threshold is None) or (mse > mse_threshold)
+
+    is_anomaly = density_is_anom and mse_is_anom
+    return "The image is an anomaly" if is_anomaly else "The image is normal"
 
 
 def decoder(
