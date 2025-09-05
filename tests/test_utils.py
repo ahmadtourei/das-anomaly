@@ -157,6 +157,7 @@ class TestTrainer:
         filters = 64
         enc = encoder(size, layers, filters)
         n_before = len(enc.layers)
+        assert n_before == layers * 2  # Conv2D and MaxPooling
 
         decoder(enc)
 

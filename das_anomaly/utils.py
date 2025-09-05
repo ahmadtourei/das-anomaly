@@ -108,16 +108,21 @@ def decoder(
     autoencoder : keras.Sequential
         The same object you passed in, now containing the full encoder-decoder.
     """
-    # Collect the filter sizes from the encoder’s Conv2D layers
-    conv_filters = [
-        layer.filters for layer in model.layers if isinstance(layer, Conv2D)
-    ]
+    # how many times did we downsample?
+    n_pool = sum(isinstance(l, MaxPooling2D) for l in model.layers)
+    if n_pool == 0:
+        raise ValueError("Encoder must contain at least one MaxPooling2D layer.")
 
-    if not conv_filters:
-        raise ValueError("Encoder must contain Conv2D layers.")
+    # mirror filters from the *last* n_pool convs
+    conv_filters = [l.filters for l in model.layers if isinstance(l, Conv2D)]
+    if len(conv_filters) < n_pool:
+        raise ValueError(
+            f"Encoder conv/pool mismatch: convs={len(conv_filters)} pools={n_pool}"
+        )
+    dec_filters = list(reversed(conv_filters))[:n_pool]  # small→large
 
-    # Mirror them (e.g. [64, 32, 16]  →  [16, 32, 64])
-    for filt in conv_filters[::-1]:
+    # do exactly n_pool upsamples
+    for _, filt in enumerate(dec_filters, 1):
         model.add(
             Conv2D(
                 filt,
@@ -129,7 +134,7 @@ def decoder(
         )
         model.add(UpSampling2D((2, 2), name=_unique_name(model, "dec_up")))
 
-    # Final pixel-space reconstruction layer
+    # final reconstruction layer
     model.add(
         Conv2D(
             output_channels,
