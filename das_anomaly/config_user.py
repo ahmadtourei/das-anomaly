@@ -24,9 +24,13 @@ LAYERS = 3
 FILTERS = 64
 # Batch size for the train generator
 BATCH_SIZE = 64
-# Desired density threshold based on density score
-# of background noise data and known anomolous data
+# Thresholding - set None to skip
+# 1- Desired density threshold based on density score
+# of background noise data and known anomalous data
 DENSITY_THRESHOLD = 20_485.341
+# 2- Desired mean squared reconstruction erro based on MSE
+# of background noise data and known anomalous data
+MSE_THRESHOLD = 0.02
 # Empirically choose 95th-percentile amplitude for a background noise
 # (anomaly-free) PSD. Used as vmax in imshow to keep colour scaling
 # consistent across plots.

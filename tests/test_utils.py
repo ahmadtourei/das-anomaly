@@ -27,42 +27,6 @@ from das_anomaly.utils import (
 )
 
 
-class TestSearchKeyword:
-    """Tests for search_keyword_in_files."""
-
-    def test_keyword_found(self, tmp_path: Path):
-        f1 = tmp_path / "a.txt"
-        f2 = tmp_path / "b.txt"
-
-        # keyword must be the final token on the line to match
-        f1.write_text("apple\nbanana\nnot this apple pie\n")  # 1 match
-        f2.write_text("just apple\nanother line\n")  # 1 match
-
-        count, lines = search_keyword_in_files(tmp_path, "apple")
-        assert count == 2  # ← was 3
-        assert len(lines) == 2
-        assert all(line.split()[-1].rstrip(".,") == "apple" for line in lines)
-
-
-class DummyKDE:
-    """Return a constant KDE score for every sample."""
-
-    def __init__(self, score):
-        self.score = score
-
-    def score_samples(self, x):
-        return np.full(len(x), self.score)
-
-
-class DummyEncoder:
-    """Fake encoder: output shape (4,4,1) and constant prediction."""
-
-    output_shape = (None, 4, 4, 1)
-
-    def predict(self, x, verbose=0):
-        return [np.zeros((4, 4, 1))]
-
-
 @pytest.fixture
 def dummy_png(tmp_path: Path):
     """RGB 3*3 dummy image saved as PNG."""
@@ -79,6 +43,42 @@ def _dummy_patch():
     )
 
 
+class DummyCoords:
+    def get_coord(self, _):
+        return np.arange(10)
+
+
+class DummyKDE:
+    """Return a constant KDE score for every sample."""
+
+    def __init__(self, score):
+        self.score = score
+
+    def score_samples(self, x):
+        return np.full(len(x), self.score)
+
+
+class DummyEncoder:
+    """
+    Fake encoder with 4x4x3 latent by default.
+    - output_shape: (None, 4, 4, 3)
+    - predict(...): returns [zeros((4,4,3))] to mimic a single-output Keras model.
+    """
+
+    def __init__(self, size: int = 32, layers: int = 3, channels: int = 3):
+        # 32 // (2**3) == 4  → 4×4 latent
+        self.size = int(size)
+        self.layers = int(layers)
+        self.channels = int(channels)
+        h = self.size // (2**self.layers)
+        self.latent_shape = (h, h, self.channels)
+        self.output_shape = (None, *self.latent_shape)
+
+    def predict(self, x, verbose: int = 0):
+        h, w, c = self.latent_shape
+        return [np.zeros((h, w, c), dtype=np.float32)]
+
+
 class TestCheckIfAnomaly:
     """Tests for check_if_anomaly"""
 
@@ -88,16 +88,33 @@ class TestCheckIfAnomaly:
         rgba[..., 3] = 255
         img_path = tmp_path / "rgba.png"
         Image.fromarray(rgba, mode="RGBA").save(img_path)
-        out = check_if_anomaly(DummyEncoder(), 8, img_path, 0.5, DummyKDE(0.8))
+        out = check_if_anomaly(DummyEncoder(), 8, img_path, DummyKDE(0.8), 0.5)
         assert out.endswith("normal")
 
     def test_flags_normal(self, dummy_png):
-        out = check_if_anomaly(DummyEncoder(), 8, dummy_png, 0.5, DummyKDE(0.9))
+        out = check_if_anomaly(DummyEncoder(), 8, dummy_png, DummyKDE(0.9), 0.5)
         assert out.endswith("normal")
 
     def test_flags_anomaly(self, dummy_png):
-        out = check_if_anomaly(DummyEncoder(), 8, dummy_png, 0.5, DummyKDE(0.1))
+        out = check_if_anomaly(DummyEncoder(), 8, dummy_png, DummyKDE(0.1), 0.5)
         assert out.endswith("anomaly")
+
+
+class TestSearchKeyword:
+    """Tests for search_keyword_in_files."""
+
+    def test_keyword_found(self, tmp_path: Path):
+        f1 = tmp_path / "a.txt"
+        f2 = tmp_path / "b.txt"
+
+        # keyword must be the final token on the line to match
+        f1.write_text("apple\nbanana\nnot this apple pie\n")  # 1 match
+        f2.write_text("just apple\nanother line\n")  # 1 match
+
+        count, lines = search_keyword_in_files(tmp_path, "apple")
+        assert count == 2  # ← was 3
+        assert len(lines) == 2
+        assert all(line.split()[-1].rstrip(".,") == "apple" for line in lines)
 
 
 class TestDensity:
@@ -140,6 +157,7 @@ class TestTrainer:
         filters = 64
         enc = encoder(size, layers, filters)
         n_before = len(enc.layers)
+        assert n_before == layers * 2  # Conv2D and MaxPooling
 
         decoder(enc)
 
@@ -163,11 +181,6 @@ class TestTrainer:
         assert isinstance(last, Conv2D)
         assert last.filters == 3
         assert last.activation.__name__ == "sigmoid"
-
-
-class DummyCoords:
-    def get_coord(self, _):
-        return np.arange(10)
 
 
 class TestPlotSpec:

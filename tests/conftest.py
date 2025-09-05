@@ -7,10 +7,10 @@ from dascore.core import Patch
 from dascore.io.core import read
 from dascore.utils.downloader import fetch
 from keras import Model
-from keras import layers as L
-from keras.layers import Conv2D as _Conv2D
 from PIL import Image
 from sklearn.neighbors import KernelDensity as SKKDE
+from tensorflow.keras import layers as TFL
+from tensorflow.keras.models import Model
 
 import das_anomaly.detect.detector as det_mod
 from das_anomaly.psd import PSDConfig
@@ -145,33 +145,46 @@ def _fake_sequential():
 
 @pytest.fixture
 def patched_tf(monkeypatch):
+    # Use the SAME UpSampling2D class the main module imports
+    UpS = det_mod.UpSampling2D  # critical for isinstance(...) in _extract_encoder
+
     size = 8
-    x_in = L.Input((size, size, 3), name="input")
-    x = L.Conv2D(8, 3, padding="same", activation="relu", name="conv1")(x_in)
-    x = L.MaxPooling2D(2, padding="same", name="pool1")(x)
-    x = L.Conv2D(4, 3, padding="same", activation="relu", name="conv2")(x)
-    x = L.MaxPooling2D(2, padding="same", name="pool2")(x)
-    x = L.UpSampling2D(2, name="up1")(x)  # decoder start
-    fake_model = Model(x_in, x, name="ae_tiny")
+    x_in = TFL.Input((size, size, 3), name="input")
+
+    # --- encoder ---
+    x = TFL.Conv2D(8, 3, padding="same", activation="relu", name="conv1")(x_in)
+    x = TFL.MaxPooling2D(2, padding="same", name="pool1")(x)
+    x = TFL.Conv2D(4, 3, padding="same", activation="relu", name="conv2")(x)
+    x = TFL.MaxPooling2D(2, padding="same", name="pool2")(x)  # -> 2x2x4
+
+    # --- decoder (full path back to input size) ---
+    x = TFL.UpSampling2D(2, name="up1")(x)  # 4x4x4  (boundary layer)
+    x = TFL.Conv2D(4, 3, padding="same", activation="relu", name="dec_conv1")(x)
+    x = TFL.UpSampling2D(2, name="up2")(x)  # 8x8x4
+    x = TFL.Conv2D(8, 3, padding="same", activation="relu", name="dec_conv2")(x)
+    recon = TFL.Conv2D(3, 3, padding="same", activation="sigmoid", name="recon")(x)
+
+    fake_model = Model(x_in, recon, name="ae_tiny")
 
     # give source model some weights
     for la in fake_model.layers:
-        if la.weights:
+        if la.get_weights():
             la.set_weights([np.ones_like(w) for w in la.get_weights()])
 
     # make your code load this model
-    monkeypatch.setattr(det_mod, "load_model", lambda path: fake_model)
+    monkeypatch.setattr(det_mod, "load_model", lambda path: fake_model, raising=True)
 
-    # mark when set_weights is called on cloned Conv2D layers
-    _orig_set = _Conv2D.set_weights
+    # Track set_weights on the EXACT Conv2D class used in this model
+    Conv2D_cls = type(fake_model.get_layer("conv1"))
+    _orig_set = Conv2D_cls.set_weights
 
     def _track_set(self, weights):
         self._set_called = True
         return _orig_set(self, weights)
 
-    monkeypatch.setattr(_Conv2D, "set_weights", _track_set, raising=False)
+    monkeypatch.setattr(Conv2D_cls, "set_weights", _track_set, raising=False)
 
-    # capture KernelDensity.fit input shape <<<
+    # capture KernelDensity.fit input shape for assertions
     kde_fit_called = {}
     _orig_kde_fit = SKKDE.fit
 

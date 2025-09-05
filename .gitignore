@@ -5,7 +5,6 @@ __pycache__/
 *$py.class
 data/
 .ruff_cache/
-.DS_Store
 
 # Distribution / packaging
 .Python
@@ -40,3 +39,15 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+
+# linux/osx garbage
+*~
+*.swp
+.DS_store*
+.DS_Store*

@@ -10,6 +10,7 @@ import string
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fftpack as ft
+import tensorflow as tf
 from matplotlib import gridspec
 from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
@@ -19,7 +20,29 @@ from tensorflow.keras.models import Sequential
 from das_anomaly.settings import SETTINGS
 
 
-def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
+@staticmethod
+def _compile(model: tf.keras.Model) -> tf.keras.Model:
+    model.compile(
+        optimizer="adam",
+        loss="mean_squared_error",
+        metrics=["mae"],  # mean absolute error
+    )
+    return model
+
+
+def _unique_name(model, base):
+    used = {l.name for l in model.layers}
+    if base not in used:
+        return base
+    i = 1
+    while f"{base}_{i}" in used:
+        i += 1
+    return f"{base}_{i}"
+
+
+def check_if_anomaly(
+    encoder_model, size, img_path, kde, density_threshold=None, mse_threshold=None
+):
     """Check whether the image is an anomaly"""
     # Flatten the encoder output because KDE from sklearn takes 1D vectors as input
     encoder_output_shape = encoder_model.output_shape
@@ -35,13 +58,27 @@ def check_if_anomaly(encoder_model, size, img_path, density_threshold, kde):
     img = img[np.newaxis, :, :, :]
     encoded_img = encoder_model.predict([[img]], verbose=0)
     encoded_img = [np.reshape(img, (out_vector_shape)) for img in encoded_img]
-    density = kde.score_samples(encoded_img)[0]
+    log_density = kde.score_samples(encoded_img)[0]
 
-    if density < density_threshold:
-        out = "The image is an anomaly"
-    else:
-        out = "The image is normal"
-    return out
+    if mse_threshold is not None:
+        cloned_enc = tf.keras.models.clone_model(encoder_model)
+        cloned_enc.build(encoder_model.input_shape)
+        cloned_enc.set_weights(encoder_model.get_weights())
+        ae = decoder(cloned_enc)
+        ae_model_compiled = _compile(ae)
+
+        img_mse = np.asarray(img, dtype=np.float64)
+        if img_mse.ndim == 3:  # (H,W,C) -> (1,H,W,C)
+            img_mse = img_mse[None, ...]
+        assert img_mse.ndim == 4, f"Expected 4D (B,H,W,C), got {img_mse.shape}"
+
+        mse = ae_model_compiled.evaluate(img_mse, img_mse, batch_size=1)[0]
+    # --- criteria (ignore any None thresholds) ---
+    density_is_anom = (density_threshold is None) or (log_density < density_threshold)
+    mse_is_anom = (mse_threshold is None) or (mse > mse_threshold)
+
+    is_anomaly = density_is_anom and mse_is_anom
+    return "The image is an anomaly" if is_anomaly else "The image is normal"
 
 
 def decoder(
@@ -58,6 +95,7 @@ def decoder(
     ----------
     model : keras.Sequential (the encoder)
         A stack of Conv2D → MaxPooling2D blocks (built with `encoder()`).
+        The model at the end of encoding stage.
     output_channels : int, default=3
         Number of channels in the reconstructed image (e.g. 3 for RGB).
     conv_activation : str, default="relu"
@@ -70,22 +108,41 @@ def decoder(
     autoencoder : keras.Sequential
         The same object you passed in, now containing the full encoder-decoder.
     """
-    # Collect the filter sizes from the encoder’s Conv2D layers
-    conv_filters = [
-        layer.filters for layer in model.layers if isinstance(layer, Conv2D)
-    ]
+    # how many times did we downsample?
+    n_pool = sum(isinstance(l, MaxPooling2D) for l in model.layers)
+    if n_pool == 0:
+        raise ValueError("Encoder must contain at least one MaxPooling2D layer.")
 
-    if not conv_filters:
-        raise ValueError("Encoder must contain Conv2D layers.")
+    # mirror filters from the *last* n_pool convs
+    conv_filters = [l.filters for l in model.layers if isinstance(l, Conv2D)]
+    if len(conv_filters) < n_pool:
+        raise ValueError(
+            f"Encoder conv/pool mismatch: convs={len(conv_filters)} pools={n_pool}"
+        )
+    dec_filters = list(reversed(conv_filters))[:n_pool]  # small→large
 
-    # Mirror them (e.g. [64, 32, 16]  →  [16, 32, 64])
-    for filt in conv_filters[::-1]:
-        model.add(Conv2D(filt, (3, 3), activation=conv_activation, padding="same"))
-        model.add(UpSampling2D((2, 2)))
+    # do exactly n_pool upsamples
+    for _, filt in enumerate(dec_filters, 1):
+        model.add(
+            Conv2D(
+                filt,
+                (3, 3),
+                activation=conv_activation,
+                padding="same",
+                name=_unique_name(model, "dec_conv"),
+            )
+        )
+        model.add(UpSampling2D((2, 2), name=_unique_name(model, "dec_up")))
 
-    # Final pixel-space reconstruction layer
+    # final reconstruction layer
     model.add(
-        Conv2D(output_channels, (3, 3), activation=final_activation, padding="same")
+        Conv2D(
+            output_channels,
+            (3, 3),
+            activation=final_activation,
+            padding="same",
+            name=_unique_name(model, "dec_out"),
+        )
     )
     return model
 

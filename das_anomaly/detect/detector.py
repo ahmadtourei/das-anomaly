@@ -69,6 +69,7 @@ class DetectConfig:
     size: int = SETTINGS.SIZE
     batch_size: int = SETTINGS.BATCH_SIZE
     density_threshold: float = SETTINGS.DENSITY_THRESHOLD
+    mse_threshold: float = SETTINGS.MSE_THRESHOLD
 
     def __post_init__(self):
         # expand paths
@@ -127,8 +128,9 @@ class AnomalyDetector:
                         encoder_model=self.encoder,
                         size=self.cfg.size,
                         img_path=img_path,
-                        density_threshold=self.cfg.density_threshold,
                         kde=self.kde,
+                        density_threshold=self.cfg.density_threshold,
+                        mse_threshold=self.cfg.mse_threshold,
                     )
                     print(f"Line {j}, image {img_path}: {flag}", file=fh)
 
@@ -169,8 +171,9 @@ class AnomalyDetector:
                         encoder_model=self.encoder,
                         size=self.cfg.size,
                         img_path=img_path,
-                        density_threshold=self.cfg.density_threshold,
                         kde=self.kde,
+                        density_threshold=self.cfg.density_threshold,
+                        mse_threshold=self.cfg.mse_threshold,
                     )
                     print(f"Rank {rank} · line {j}, {img_path}: {flag}", file=fh)
 
