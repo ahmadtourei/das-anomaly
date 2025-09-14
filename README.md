@@ -29,7 +29,7 @@ Dependency notes:
 
 2. If you'd like to train the model on GPU, make sure you install TensorFlow with GPU setup in your environment. More information can be found [here](https://www.tensorflow.org/install/pip#:~:text=4.-,Install%20TensorFlow,-TensorFlow%20requires%20a).
 
-3. Currently waiting on `TesorFlow` to support Python 3.13 before we can support it as well.
+3. Currently waiting on `TensorFlow` to support Python 3.13 before we can support it as well.
 
 ### Install Required Dependencies Only
 For clean dependency management, use a virtual environment or a fresh Conda environment.
@@ -56,9 +56,8 @@ pip uninstall das_anomaly
 ## Instructions
 The main steps for using the package are as follows:
 1. Define constants and create a Spool of data: 
-Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below.
+Using the _config_user_ script in the das_anomaly directory, define the constants and directory paths for data, power spectral density (PSD) images, detected anomaly results, etc. You would complete adding the values as you go over the steps mentioned below. Then, using DASCore, create an index file for the [spool](https://dascore.org/tutorial/spool.html) of data first time reading the DAS data directory:
 
-Then, using DASCore, create an index file for the [spool](https://dascore.org/tutorial/spool.html) of data first time reading the DAS data directory:
 ### Example
 ```python
 import dascore as dc
@@ -66,13 +65,13 @@ from das_anomaly.settings import SETTINGS
 
 data_path = SETTINGS.DATA_PATH
 
-# Update will create an index of the contents for fast querying/access
+# Update will create an index of the contents for fast querying/access. No need to apply update() in future.
 spool = dc.spool(directory_path).update()
 ``` 
 Note: Creating the spool for the first time may take some time if your directory contains hundreds of gigabytes or terabytes of DAS data. However, DASCore creates an index file, allowing it to quickly query the directory on subsequent accesses.
 
 2. Set a consistent upper bound for PSD amplitude values:
-To ensure all PSD images share the same colorbar scale, determine an appropriate CLIP_VALUE_MAX in the _config_user_ script. This can be done using the `get_psd_max_clip` function, which computes the mean value of maximum amplitude from TIME_WINDOWs of the data which does not include drastic anomalies (therefore, a quick exploratory data analysis is needed here.)
+To ensure all PSD images share the same colorbar scale (in RGB), determine an appropriate CLIP_VALUE_MAX in the _config_user_ input file. This can be done using the `get_psd_max_clip` function, which computes the mean value of maximum amplitude from TIME_WINDOWs of the data which does not include obvious anomalies (therefore, a quick exploratory data analysis is needed here.)
 ### Example
 ```python
 from das_anomaly.psd import PSDConfig, PSDGenerator
@@ -82,7 +81,7 @@ from das_anomaly.settings import SETTINGS
 bn_data_path = SETTINGS.BN_DATA_PATH
 cfg = PSDConfig(data_path=bn_data_path)
 gen = PSDGenerator(cfg)
-percentile = 90
+percentile = 90 # data dependent
 clip_val = gen.run_get_psd_val(percentile=percentile)
 print(f"Mean {percentile}-percentile amplitude across all patches: {clip_val:.3e}")
 ```
@@ -110,10 +109,10 @@ PSDGenerator(cfg).run()
 PSDGenerator(cfg).run_parallel()
 ```
 4. Select and copy known anomaly PSD plots:
-From the generated PSD plots, identify and copy examples of known anomalies to the ANOMALY_IMAGES_PATH specified in the _config_user_ script. These anomalies can include events such as earthquakes from an existing catalog, seismic activity, instrument noise, anthropogenic disturbances, etc. Including these examples helps improve the accuracy of thresholding during the anomaly detection process.
+From the generated PSD plots, identify and copy examples of known anomalies to the ANOMALY_IMAGES_PATH specified in the _config_user_ input script. These anomalies can include events such as earthquakes from an existing catalog, instrument noise, anthropogenic disturbances, etc. Including these examples helps improve thresholding during the detection process.
 
 5. Train: 
-The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. If you need to change model's architecture, you'll need to modify the `encoder` and `decoder` functions in the [utils.py](das_anomaly/utils.py). 
+The `das_anomaly.train` module helps with randomly selecting train and test PSD images and training the model (with CPU or GPU) on anomaly-free PSD images. 
 ### Example
 ```python
 from das_anomaly.settings import SETTINGS
@@ -127,13 +126,13 @@ ImageSplitter(cfg).run()
 cfg = TrainAEConfig()
 AutoencoderTrainer(cfg).run()
 ```
-Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must ensure the training and testing datasets do not include anomalies. If you have an excel sheet with time stamp of anomalies, use "exclude_known_events_from_training" in examples directory to exclude them. Or, manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
+Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must ensure the training and testing datasets do not include obvious anomalies. If you have an excel sheet with time stamp of anomalies (such as a catalog), use the "exclude_known_events_from_training" in examples directory to exclude them. Or, manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
 
 6. Test and set a threshold: 
 Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Then, make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 
 
 7. Run the trained model: 
-The `das_anomaly.detect` module applies the trained model to the data to detect anomalies in the PSD images and writes their information. It also copies the detected anomaly to the RESULTS_PATH. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
+The `das_anomaly.detect` module uses the trained model to detect anomalies in the PSD images and writes their information (e.g., time stamp). It also copies the detected anomaly to the RESULTS_PATH. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
 ### Example
 ```python
 from das_anomaly.count.counter import CounterConfig, AnomalyCounter
@@ -145,7 +144,7 @@ AnomalyDetector(cfg).run()
 # parallel processing with multiple processors using MPI:
 AnomalyDetector(cfg).run_parallel()
 
-# count number of anomalies
+# count number of detected anomalies
 cfg = CounterConfig(keyword="anomaly")
 anomalies = AnomalyCounter(cfg).run() 
 print(anomalies) # prints info on number of anomalies and path to them
