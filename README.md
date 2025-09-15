@@ -128,8 +128,8 @@ AutoencoderTrainer(cfg).run()
 ```
 Note: Since the `TrainSplitConfig()` function randomly selects PSD images from the generated plots, you must ensure the training and testing datasets do not include obvious anomalies. If you have an excel sheet with time stamp of anomalies (such as a catalog), use the "exclude_known_events_from_training" in examples directory to exclude them. Or, manually inspect both the training and testing sets to ensure they do not contain apparent anomalies. Review their time- and frequency-domain representations, and remove any suspicious samples to maintain the quality of training.
 
-6. Test and set a threshold: 
-Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find an appropriate density score as a threshold for anomaly detection. Then, make sure to modify the DENSITY_THRESHOLD parameter in the _config_user_ script. 
+6. Test and set thresholds: 
+Using the _validate_and_plot_density_ jupyter notebook in the examples directory, validate the trained model and find appropriate MSE and density score as thresholds for anomaly detection. Make sure to modify the DENSITY_THRESHOLD and MSE_THRESHOLD parameters in the _config_user_ script. 
 
 7. Run the trained model: 
 The `das_anomaly.detect` module uses the trained model to detect anomalies in the PSD images and writes their information (e.g., time stamp). It also copies the detected anomaly to the RESULTS_PATH. MPI can be used to distribute PSDs over CPUs. Then, using the `das_anomaly.count` module, count the number of detected anomalies and display their details and file paths.
