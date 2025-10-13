@@ -15,27 +15,38 @@ def _mk_txt(where: Path, name: str, text: str) -> None:
 class TestAnomalyCounter:
     """Happy-path and edge-case checks for the counter module."""
 
-    def test_run_counts_and_writes(self, tmp_path: Path):
-        """Three matching lines → summary says 3 and file holds 4 lines."""
-        out_root = tmp_path / "out"
-        out_root.mkdir()
 
-        # keyword must be *last* token in the matching lines
-        _mk_txt(out_root, "a.txt", "one anomaly\nno hit here\nanother anomaly\n")
-        _mk_txt(out_root, "b.txt", "still no\nthird anomaly\n")
+def test_run_counts_and_writes(tmp_path: Path):
+    """Three matching lines → summary says 3 and file layout includes header, matches, blank, summary."""
+    out_root = tmp_path / "out"
+    out_root.mkdir()
 
-        cfg = CounterConfig(results_path=out_root, keyword="anomaly")
-        summary = AnomalyCounter(cfg).run()
+    # keyword must be *last* token in the matching lines
+    _mk_txt(out_root, "a.txt", "one anomaly\nno hit here\nanother anomaly\n")
+    _mk_txt(out_root, "b.txt", "still no\nthird anomaly\n")
 
-        expected_msg = (
-            f"Total detected 'anomaly': 3\n" f"Text file saved at {cfg.summary_file}"
-        )
-        assert summary == expected_msg
+    cfg = CounterConfig(results_path=out_root, keyword="anomaly")
+    summary = AnomalyCounter(cfg).run()
 
-        text_lines = cfg.summary_file.read_text().splitlines()
-        # 3 matches + summary line
-        assert len(text_lines) == 4
-        assert text_lines[-1] == "Total detected 'anomaly': 3"
+    expected_msg = f"Total detected 'anomaly': 3\nText file saved at {cfg.summary_file}"
+    assert summary == expected_msg
+
+    text_lines = cfg.summary_file.read_text().splitlines()
+
+    # New file structure:
+    # 0: "# Raw matches"
+    # 1..3: three matching lines
+    # 4: "" (blank)
+    # 5: summary line
+    assert len(text_lines) == 6
+    assert text_lines[0] == "# Raw matches"
+    assert text_lines[4] == ""
+    assert text_lines[-1] == "Total detected 'anomaly': 3"
+
+    # Be robust to ordering of matches (depends on search implementation)
+    matches = [ln for ln in text_lines if ln.endswith("anomaly")]
+    assert len(matches) == 3
+    assert set(matches) == {"one anomaly", "another anomaly", "third anomaly"}
 
     def test_custom_keyword(self, tmp_path: Path):
         """Case-sensitive search for 'foo' finds exactly two matches."""
