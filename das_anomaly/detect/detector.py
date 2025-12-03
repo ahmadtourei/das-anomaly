@@ -101,23 +101,50 @@ class AnomalyDetector:
     # -------------------------------------------------------------- #
     def run(self) -> None:
         """Score every PSD PNG and log / copy anomalies with single processor."""
-        root_pngs = list(self.cfg.psd_path.glob("*.png"))
+        psd_root = self.cfg.psd_path
 
-        # enumerate only directories (deterministic order)
-        subdirs = sorted([p for p in self.cfg.psd_path.iterdir() if p.is_dir()])
+        # Root-level PNGs (e.g., root_0.png, root_1.png, ...)
+        root_pngs = sorted(psd_root.glob("*.png"))
 
-        for i, folder in enumerate(self.cfg.psd_path.iterdir()):
-            if not folder.is_dir():
-                continue
-            # If there are no subdirs, process root-level PNGs once
-            if not subdirs:
-                spectra = root_pngs
+        # Subdirectories under psd_root (e.g., rank_0, rank_1, ...)
+        subdirs = sorted([p for p in psd_root.iterdir() if p.is_dir()])
 
-            spectra = (
-                sorted(root_pngs + list(folder.glob("*.png")))
-                if i == 0
-                else sorted(folder.glob("*.png"))
+        # Case 1: no subdirs -> only root-level spectra
+        if not subdirs:
+            if not root_pngs:
+                # nothing to do
+                return
+
+            spectra = root_pngs
+            out_file = (
+                self.cfg.results_path
+                / f"{psd_root.name}_output_model_{self.cfg.size}_anomaly.txt"
             )
+            with out_file.open("w") as fh:
+                for j, img_path in enumerate(spectra):
+                    flag = check_if_anomaly(
+                        encoder_model=self.encoder,
+                        size=self.cfg.size,
+                        img_path=img_path,
+                        kde=self.kde,
+                        density_threshold=self.cfg.density_threshold,
+                        mse_threshold=self.cfg.mse_threshold,
+                    )
+                    print(f"Line {j}, image {img_path}: {flag}", file=fh)
+
+                    if flag.endswith("anomaly"):
+                        shutil.copy(img_path, self.dest_dir)
+            return
+
+        # Case 2: at least one subdir exists
+        # - first subdir: process root PNGs + its PNGs
+        # - remaining subdirs: process their PNGs only
+        for i, folder in enumerate(subdirs):
+            if i == 0:
+                spectra = sorted(root_pngs + list(folder.glob("*.png")))
+            else:
+                spectra = sorted(folder.glob("*.png"))
+
             out_file = (
                 self.cfg.results_path
                 / f"{folder.name}_output_model_{self.cfg.size}_anomaly.txt"
